@@ -22,9 +22,14 @@ Copy `.env.example` to `.env.local`. Do not commit `.env.local`.
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk browser key. This is safe to expose in client-side code. |
 | `CLERK_SECRET_KEY` | Clerk server key. Required by the Next.js server and never exposed to the browser. |
 | `NIROG_CORE_API_URL` | Public Nirog Core base URL, including `/api/v1`. |
-| `NIROG_CORE_JWT_TEMPLATE` | Optional Clerk JWT template name used when Core expects a custom audience. |
 
-For the Core verifier configured with `CLERK_AUDIENCE=nirog-mobile-api`, create a Clerk JWT template whose `aud` claim matches `nirog-mobile-api`, set `NIROG_CORE_JWT_TEMPLATE` to the template name, and use the same Clerk instance in Core and Web. If Core is changed to accept the default session token audience, the template variable can be omitted.
+For the Core verifier configured with `CLERK_AUDIENCE=nirog-mobile-api`, add the following custom claim in **Clerk Dashboard → Sessions → Customize session token**:
+
+```json
+{ "aud": "nirog-mobile-api" }
+```
+
+The Web bridge must call `getToken()` without a template. Core requires the standard session token's `sid` claim to bind the verified actor to a session; Clerk JWT templates intentionally do not contain that session-bound claim. Keep `CLERK_AUTHORIZED_PARTIES` aligned with the actual browser origin represented by the token's `azp` claim, for example `https://www.nirog.me`.
 
 ## Run locally
 
@@ -42,4 +47,4 @@ pnpm lint
 pnpm build
 ```
 
-The testable integration point is `GET /api/core/me`. It returns a consistent problem response for missing Core configuration, missing token templates, or unreachable Core, preserving the Core response body and correlation identifier when Core responds.
+The testable integration point is `GET /api/core/me`. It returns a consistent problem response for missing Core configuration, unavailable session tokens, or unreachable Core, preserving the Core response body and correlation identifier when Core responds.

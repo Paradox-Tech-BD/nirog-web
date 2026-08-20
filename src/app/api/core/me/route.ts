@@ -15,16 +15,22 @@ function problem(status: number, code: string, title: string, detail: string) {
   );
 }
 
+export function coreApiRoot(apiBase: string): string {
+  const normalized = apiBase.replace(/\/+$/, '');
+  return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
+}
+
 export async function GET() {
   const { isAuthenticated, sessionId, getToken } = await auth();
   if (!isAuthenticated || !sessionId) {
     return problem(401, 'UNAUTHENTICATED', 'Sign in required', 'Sign in before loading your Nirog care record.');
   }
 
-  const apiBase = process.env.NIROG_CORE_API_URL?.replace(/\/$/, '');
-  if (!apiBase) {
+  const configuredApiBase = process.env.NIROG_CORE_API_URL;
+  if (!configuredApiBase) {
     return problem(503, 'CORE_API_UNCONFIGURED', 'Nirog Core is not configured', 'Set NIROG_CORE_API_URL on the web server.');
   }
+  const apiBase = coreApiRoot(configuredApiBase);
 
   // Do not request a Clerk JWT template here. Custom JWT templates are not session-bound
   // and therefore omit sid; Core intentionally requires sid to bind its local actor context.

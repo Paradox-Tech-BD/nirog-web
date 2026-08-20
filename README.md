@@ -21,7 +21,7 @@ Copy `.env.example` to `.env.local`. Do not commit `.env.local`.
 |---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk browser key. This is safe to expose in client-side code. |
 | `CLERK_SECRET_KEY` | Clerk server key. Required by the Next.js server and never exposed to the browser. |
-| `NIROG_CORE_API_URL` | Public Nirog Core base URL, including `/api/v1`. |
+| `NIROG_CORE_API_URL` | Public Nirog Core origin. The bridge appends `/api/v1` when absent, and also accepts a base that already ends in `/api/v1`. |
 
 For the Core verifier configured with `CLERK_AUDIENCE=nirog-mobile-api`, add the following custom claim in **Clerk Dashboard → Sessions → Customize session token**:
 

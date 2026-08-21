@@ -29,7 +29,7 @@ type LoadState =
 const navigation = [
   { label: 'Today', icon: Activity, active: true },
   { label: 'Profiles', icon: UsersRound },
-  { label: 'Records', icon: FileText },
+  { label: 'Prescription evidence', icon: FileText, href: '/evidence' },
   { label: 'Access', icon: ShieldCheck },
 ];
 
@@ -93,11 +93,11 @@ export function CareWorkspace() {
           <span>Nirog</span>
         </a>
         <nav className="rail-nav">
-          {navigation.map(({ label, icon: Icon, active }) => (
-            <button className={`rail-item ${active ? 'is-active' : ''}`} key={label} type="button">
+          {navigation.map(({ label, icon: Icon, active, href }) => (
+            <a className={`rail-item ${active ? 'is-active' : ''}`} href={href ?? '#workspace'} key={label}>
               <Icon size={18} strokeWidth={1.8} />
               <span>{label}</span>
-            </button>
+            </a>
           ))}
         </nav>
         <div className="rail-footnote">

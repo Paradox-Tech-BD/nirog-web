@@ -81,7 +81,10 @@ export async function POST() {
     cache: 'no-store',
   });
   if (!upload.ok) {
-    return problem(502, 'EVIDENCE_OBJECT_UPLOAD_FAILED', 'Synthetic evidence upload failed', 'The presigned R2 upload did not complete.');
+    const uploadBody = await upload.text();
+    const providerCode = /<Code>([^<]+)<\/Code>/.exec(uploadBody)?.[1];
+    const providerDetail = providerCode ? ` R2 returned ${upload.status} (${providerCode}).` : ` R2 returned ${upload.status}.`;
+    return problem(502, 'EVIDENCE_OBJECT_UPLOAD_FAILED', 'Synthetic evidence upload failed', `The presigned R2 upload did not complete.${providerDetail}`);
   }
 
   const completion = await fetch(

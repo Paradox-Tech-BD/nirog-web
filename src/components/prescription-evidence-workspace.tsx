@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import type { AccountProjection, CoreSuccess } from '@/lib/core-api';
-import { formatEvidenceBytes, validateEvidenceFile } from '@/lib/evidence-upload';
+import { formatEvidenceBytes, newestEvidenceId, validateEvidenceFile } from '@/lib/evidence-upload';
 
 type Prescription = { id: string; status: 'active' | 'archived'; prescriberLabel?: string; issuedOn?: string; createdAt: string };
-type Evidence = { id: string; contentType: string; declaredSizeBytes: number; status: string; uploadedAt?: string; processedAt?: string };
+type Evidence = { id: string; contentType: string; declaredSizeBytes: number; status: string; uploadAuthorizedAt?: string; uploadedAt?: string; processedAt?: string };
 type Extraction = { id: string; status: string; resultSource: 'demo' | 'ml'; demoFixtureId?: string; candidateMedicationName?: string; candidateDoseText?: string; candidateFrequencyText?: string };
 type State = { profiles: AccountProjection['profiles']; prescriptions: Prescription[]; evidence: Evidence[]; extractions: Extraction[]; loading: boolean; error?: string };
 type UploadState = { status: 'idle' | 'ready' | 'authorizing' | 'transferring' | 'queueing' | 'complete' | 'error'; file?: File; message?: string; jobId?: string };
@@ -36,7 +36,8 @@ export function PrescriptionEvidenceWorkspace() {
       const prescriptions = resolvedProfileId ? await core<Prescription[]>(`profiles/${resolvedProfileId}/prescriptions`) : [];
       const resolvedPrescriptionId = nextPrescriptionId || prescriptions[0]?.id || '';
       const evidence = resolvedProfileId && resolvedPrescriptionId ? await core<Evidence[]>(`profiles/${resolvedProfileId}/prescriptions/${resolvedPrescriptionId}/evidence`) : [];
-      const extractions = resolvedProfileId && evidence[0] ? await core<Extraction[]>(`profiles/${resolvedProfileId}/evidence/${evidence[0].id}/ocr-extractions`) : [];
+      const newestEvidence = newestEvidenceId(evidence);
+      const extractions = resolvedProfileId && newestEvidence ? await core<Extraction[]>(`profiles/${resolvedProfileId}/evidence/${newestEvidence}/ocr-extractions`) : [];
       setProfileId(resolvedProfileId); setPrescriptionId(resolvedPrescriptionId);
       setState({ profiles: me.profiles, prescriptions, evidence, extractions, loading: false });
     } catch (error) { setState((current) => ({ ...current, loading: false, error: error instanceof Error ? error.message : 'Nirog Core request failed.' })); }

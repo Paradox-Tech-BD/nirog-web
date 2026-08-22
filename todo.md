@@ -18,3 +18,4 @@
 - [ ] Use the three supplied prescription images as controlled evidence inputs only, preserve mandatory human review, and document the resulting operational status without exposing image content in logs or source.
 - [ ] Audit Core, dispatcher, and OCR Ops for Redis/BullMQ or alternative job-processing technology; add a protected status view only for the actual supported queue implementation.
 - [ ] Add regression tests, perform desktop/mobile live verification, publish the corrected workflow, and synchronize the final changes to GitHub main.
+- [ ] Correct the evidence review-status query so it follows the newest Core evidence item instead of a stale first list entry, without exposing OCR content or allowing clinical mutation.

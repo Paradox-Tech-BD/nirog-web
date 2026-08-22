@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatEvidenceBytes, maximumEvidenceBytes, validateEvidenceFile } from './evidence-upload';
+import { formatEvidenceBytes, maximumEvidenceBytes, newestEvidenceId, validateEvidenceFile } from './evidence-upload';
 
 describe('prescription evidence file validation', () => {
   it('accepts the Core-supported bounded evidence formats', () => {
@@ -13,5 +13,13 @@ describe('prescription evidence file validation', () => {
     expect(validateEvidenceFile({ name: 'empty.jpg', type: 'image/jpeg', size: 0 })).toMatch(/empty/);
     expect(validateEvidenceFile({ name: 'large.jpg', type: 'image/jpeg', size: maximumEvidenceBytes + 1 })).toMatch(/10 MB/);
     expect(formatEvidenceBytes(1_048_576)).toBe('1.0 MB');
+  });
+
+  it('selects the newest Core evidence item for review-status lookup', () => {
+    expect(newestEvidenceId([
+      { id: 'older', uploadAuthorizedAt: '2026-08-22T08:00:00.000Z' },
+      { id: 'newest', uploadAuthorizedAt: '2026-08-22T08:30:00.000Z' },
+      { id: 'undated' },
+    ])).toBe('newest');
   });
 });

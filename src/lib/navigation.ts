@@ -1,0 +1,10 @@
+export const appNavigation = [
+  { href: '/', label: 'Overview' },
+  { href: '/evidence', label: 'Prescription evidence' },
+] as const;
+
+export const signOutRedirectUrl = '/';
+
+export function isNavigationActive(pathname: string, href: (typeof appNavigation)[number]['href']): boolean {
+  return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
+}

@@ -234,6 +234,11 @@ a { color:inherit; text-decoration:none; }
 .care-circle-card { background:#f4f7f0; }
 .grant-list, .grant-grid { display:grid; gap:.65rem; margin:1.25rem 0 0; padding:0; list-style:none; }
 .grant-list li, .grant-grid li { display:flex; align-items:center; gap:.65rem; padding:.7rem; border:1px solid var(--path-line); background:#fff; }
+.self-access-card { display:flex; align-items:center; gap:.65rem; margin-top:1.25rem; padding:1rem; border:1px solid rgba(34,118,103,.28); background:#f7fcf7; }
+.self-access-card > div { min-width:0; flex:1; }
+.self-access-card strong { color:var(--path-ink); font-size:.82rem; }
+.self-access-card p { margin:.18rem 0 0; color:#647579; font-size:.72rem; line-height:1.45; }
+.roster-label { margin:1.3rem 0 .55rem; color:var(--path-green); }
 .grant-list li > div, .grant-grid li > div { min-width:0; flex:1; }
 .grant-list strong, .grant-grid strong { color:var(--path-ink); font-size:.78rem; }
 .grant-list p, .grant-grid p { margin:.18rem 0 0; color:#68787a; font-size:.69rem; line-height:1.4; }

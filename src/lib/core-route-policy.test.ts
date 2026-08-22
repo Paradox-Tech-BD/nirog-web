@@ -9,6 +9,7 @@ const ocrJobId = '00000000-0000-4000-8000-000000000901';
 describe('Core evidence proxy route policy', () => {
   it('allows profile onboarding plus Core user evidence and OCR-read paths', () => {
     expect(isAllowedCoreEvidencePath('profiles')).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-context`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-grants`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions/${prescriptionId}/evidence/uploads`)).toBe(true);
@@ -26,6 +27,7 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/ocr-jobs/${ocrJobId}/lab-correlation/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/ocr-jobs/${ocrJobId}/lab-receipt-audit/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-grants/extra`)).toBe(false);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-context/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medication-drafts/${evidenceId}/submitted/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath('me')).toBe(false);
   });

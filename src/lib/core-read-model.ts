@@ -58,6 +58,13 @@ export type MedicationDraftSummary = {
 
 export type ProfileGrantSummary = ProfileGrantProjection;
 
+export type ProfileAccessContext = {
+  profileId: string;
+  accessKind: 'owner' | 'grant';
+  roleCode?: 'caregiver' | 'curator' | 'viewer';
+  permissions: string[];
+};
+
 export class CoreReadError extends Error {
   readonly problem: CoreProblem;
 

@@ -128,6 +128,7 @@ a { color:inherit; text-decoration:none; }
 .spin { animation:spin 1.1s linear infinite; }
 
 .evidence-heading { margin-bottom:2rem; }
+.evidence-heading-actions { display:flex; flex-wrap:wrap; gap:.55rem; justify-content:flex-end; }
 .evidence-flow, .result-card { border:1px solid var(--line); border-radius:1rem; background:var(--surface); box-shadow:var(--shadow-sm); }
 .evidence-flow { padding:1.25rem; }
 .upload-flow { margin-top:1rem; }

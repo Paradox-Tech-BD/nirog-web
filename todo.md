@@ -13,3 +13,8 @@
 - [x] Restyle and integrate the dashboard, prescriptions, evidence/OCR workflow, and account-related screens without weakening Core authorization or review safeguards.
 - [x] Add a provider-independent global error boundary so the production build can prerender safely.
 - [x] Add focused tests for navigation policy and logout behavior, run lint/type/build validation, verify desktop and mobile renders, then deploy and synchronize the rebuilt frontend.
+- [ ] Reproduce and diagnose the signed-in prescription evidence upload failure, including control enablement, browser-to-Core authorization, upload URL handling, and completion feedback.
+- [ ] Rework the evidence upload interaction so a selected file has visible validation, progress, recoverable errors, and a clear post-upload review status without automatic clinical mutation.
+- [ ] Use the three supplied prescription images as controlled evidence inputs only, preserve mandatory human review, and document the resulting operational status without exposing image content in logs or source.
+- [ ] Audit Core, dispatcher, and OCR Ops for Redis/BullMQ or alternative job-processing technology; add a protected status view only for the actual supported queue implementation.
+- [ ] Add regression tests, perform desktop/mobile live verification, publish the corrected workflow, and synchronize the final changes to GitHub main.

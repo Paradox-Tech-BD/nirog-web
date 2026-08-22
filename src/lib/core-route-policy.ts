@@ -1,4 +1,5 @@
 const allowedPath = [
+  /^profiles$/,
   /^profiles\/[0-9a-f-]{36}\/prescriptions$/,
   /^profiles\/[0-9a-f-]{36}\/prescriptions\/[0-9a-f-]{36}\/evidence$/,
   /^profiles\/[0-9a-f-]{36}\/prescriptions\/[0-9a-f-]{36}\/evidence\/uploads$/,

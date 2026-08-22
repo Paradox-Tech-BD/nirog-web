@@ -7,7 +7,8 @@ const evidenceId = '00000000-0000-4000-8000-000000000801';
 const ocrJobId = '00000000-0000-4000-8000-000000000901';
 
 describe('Core evidence proxy route policy', () => {
-  it('allows only Core user evidence and OCR-read paths', () => {
+  it('allows profile onboarding plus Core user evidence and OCR-read paths', () => {
+    expect(isAllowedCoreEvidencePath('profiles')).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions/${prescriptionId}/evidence/uploads`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/ocr-extractions`)).toBe(true);

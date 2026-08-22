@@ -2,7 +2,7 @@
 
 import { CheckCircle2, FileCheck2, FileUp, LoaderCircle, RefreshCw, ShieldCheck, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import type { AccountProjection, CoreSuccess } from '@/lib/core-api';
 import { formatEvidenceBytes, newestEvidenceId, validateEvidenceFile } from '@/lib/evidence-upload';
@@ -27,7 +27,6 @@ export function PrescriptionEvidenceWorkspace() {
   const [profileId, setProfileId] = useState('');
   const [prescriptionId, setPrescriptionId] = useState('');
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
-  const initialLoadStarted = useRef(false);
   const load = useCallback(async (nextProfileId = profileId, nextPrescriptionId = prescriptionId) => {
     setState((current) => ({ ...current, loading: true, error: undefined }));
     try {
@@ -44,10 +43,7 @@ export function PrescriptionEvidenceWorkspace() {
   }, [profileId, prescriptionId]);
 
   useEffect(() => {
-    if (initialLoadStarted.current) return;
-    initialLoadStarted.current = true;
-    const timer = window.setTimeout(() => { void load(); }, 0);
-    return () => window.clearTimeout(timer);
+    void load();
   }, [load]);
 
   const hasProcessingEvidence = state.evidence.some((item) => item.status === 'processing');

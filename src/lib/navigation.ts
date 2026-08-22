@@ -1,6 +1,7 @@
 export const appNavigation = [
   { href: '/', label: 'Overview' },
   { href: '/evidence', label: 'Prescription evidence' },
+  { href: '/care-circle', label: 'Care circle' },
 ] as const;
 
 export const signOutRedirectUrl = '/';

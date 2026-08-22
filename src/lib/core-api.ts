@@ -32,6 +32,16 @@ export type AccountProjection = {
   }>;
 };
 
+export type ProfileGrantProjection = {
+  id: string;
+  profileId: string;
+  granteeAccountId: string;
+  roleCode: 'caregiver' | 'curator' | 'viewer';
+  permissions: string[];
+  status: 'active' | 'revoked' | 'expired';
+  expiresAt?: string;
+};
+
 export type CoreSuccess<T> = {
   data: T;
   meta: { correlationId: string };

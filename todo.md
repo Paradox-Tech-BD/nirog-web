@@ -12,4 +12,4 @@
 - [x] Rebuild the signed-in application shell so all main patient-facing pages have consistent navigation, page headers, loading states, and escape routes.
 - [x] Restyle and integrate the dashboard, prescriptions, evidence/OCR workflow, and account-related screens without weakening Core authorization or review safeguards.
 - [x] Add a provider-independent global error boundary so the production build can prerender safely.
-- [ ] Add focused tests for navigation policy and logout behavior, run lint/type/build validation, verify desktop and mobile renders, then deploy and synchronize the rebuilt frontend.
+- [x] Add focused tests for navigation policy and logout behavior, run lint/type/build validation, verify desktop and mobile renders, then deploy and synchronize the rebuilt frontend.

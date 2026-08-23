@@ -1,6 +1,7 @@
 export const appNavigation = [
   { href: '/', label: 'Overview' },
   { href: '/evidence', label: 'Prescription evidence' },
+  { href: '/care-plan', label: 'Care plan' },
   { href: '/care-circle', label: 'Care circle' },
 ] as const;
 

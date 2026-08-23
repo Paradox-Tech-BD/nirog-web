@@ -6,12 +6,14 @@ describe('patient-facing navigation policy', () => {
     expect(appNavigation).toEqual([
       { href: '/', label: 'Overview' },
       { href: '/evidence', label: 'Prescription evidence' },
+      { href: '/care-plan', label: 'Care plan' },
       { href: '/care-circle', label: 'Care circle' },
     ]);
     expect(isNavigationActive('/', '/')).toBe(true);
     expect(isNavigationActive('/evidence', '/evidence')).toBe(true);
     expect(isNavigationActive('/evidence/review', '/evidence')).toBe(true);
     expect(isNavigationActive('/care-circle', '/care-circle')).toBe(true);
+    expect(isNavigationActive('/care-plan', '/care-plan')).toBe(true);
     expect(isNavigationActive('/evidence', '/')).toBe(false);
   });
 

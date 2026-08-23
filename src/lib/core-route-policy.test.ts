@@ -19,6 +19,7 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions/${prescriptionId}/evidence/uploads`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medications`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-schedules`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences/${occurrenceId}/snooze`)).toBe(true);

@@ -65,6 +65,80 @@ export type ProfileAccessContext = {
   permissions: string[];
 };
 
+export type RegimenScheduleSummary = {
+  id: string;
+  timezone: string;
+  localTime: string;
+  intervalDays: number;
+};
+
+export type RegimenSummary = {
+  id: string;
+  medicationName: string;
+  doseQuantity: string;
+  doseUnitCode: string;
+  routeCode: string;
+  status: 'active' | 'archived';
+  startedOn: string;
+  schedules: RegimenScheduleSummary[];
+};
+
+export type ReminderScheduleSummary = {
+  id: string;
+  regimenScheduleId: string;
+  channel: 'push' | 'in_app';
+  status: 'active' | 'paused' | 'archived';
+  defaultSnoozeMinutes: number;
+  windowBeforeMinutes: number;
+  windowAfterMinutes: number;
+};
+
+export type ReminderOccurrenceSummary = {
+  id: string;
+  scheduledFor: string;
+  state: 'scheduled' | 'delivered' | 'snoozed' | 'acknowledged' | 'expired' | 'cancelled';
+  deliveredAt?: string;
+  acknowledgedAt?: string;
+};
+
+export type InAppNotificationSummary = {
+  id: string;
+  regimenId: string;
+  reminderOccurrenceId: string;
+  kind: 'reminder_due';
+  status: 'unread' | 'read';
+  createdAt: string;
+};
+
+export type InventorySummary = {
+  id: string;
+  trackingStatus: 'active' | 'paused';
+  quantityOnHand: string;
+  refillThreshold?: string;
+};
+
+export type InventoryMovementSummary = {
+  id: string;
+  kind: 'refill' | 'adjustment' | 'dose_consumption' | 'reversal';
+  quantityDelta: string;
+  occurredAt: string;
+};
+
+export type DailyAdherenceSummary = {
+  localDate: string;
+  scheduledCount: number;
+  takenCount: number;
+  lateCount: number;
+  missedCount: number;
+  skippedCount: number;
+};
+
+export type AdherenceStreakSummary = {
+  currentStreakDays: number;
+  longestStreakDays: number;
+  lastQualifyingDate?: string;
+};
+
 export class CoreReadError extends Error {
   readonly problem: CoreProblem;
 

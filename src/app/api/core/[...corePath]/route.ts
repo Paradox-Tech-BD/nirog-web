@@ -13,4 +13,5 @@ async function handle(request: Request, context: { params: Promise<{ corePath: s
 
 export const GET = handle;
 export const POST = handle;
+export const PATCH = handle;
 export const DELETE = handle;

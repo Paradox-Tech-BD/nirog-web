@@ -30,7 +30,8 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
   if (idempotencyKey) headers.set('idempotency-key', idempotencyKey);
 
   try {
-    const response = await fetch(`${coreApiRoot(configuredApiBase)}/${path}`, {
+    const query = new URL(request.url).search;
+    const response = await fetch(`${coreApiRoot(configuredApiBase)}/${path}${query}`, {
       method: request.method,
       headers,
       body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text(),

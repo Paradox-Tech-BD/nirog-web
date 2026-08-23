@@ -36,6 +36,7 @@ import {
   type ProfileGrantSummary,
 } from '@/lib/core-read-model';
 import { formatEvidenceBytes, validateEvidenceFile } from '@/lib/evidence-upload';
+import { buildMedicationDraftCorrection } from '@/lib/medication-draft-payload';
 
 type DraftForm = {
   medicationName: string;
@@ -286,7 +287,15 @@ export function PrescriptionEvidenceWorkspace() {
       await readCore<MedicationDraftSummary>(`profiles/${data.profileId}/medication-drafts/${draft.id}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey() },
-        body: JSON.stringify({ ...form, scheduleTimes, intervalDays }),
+        body: JSON.stringify(buildMedicationDraftCorrection({
+          medicationName: form.medicationName,
+          doseQuantity: form.doseQuantity,
+          doseUnitCode: form.doseUnitCode,
+          routeCode: form.routeCode,
+          frequencyText: form.frequencyText,
+          scheduleTimes,
+          intervalDays,
+        })),
       });
       const timezone = data.account?.profiles.find((profile) => profile.id === data.profileId)?.timezone ?? 'UTC';
       const regimen = await readCore<{ id: string }>(`profiles/${data.profileId}/regimens`, {

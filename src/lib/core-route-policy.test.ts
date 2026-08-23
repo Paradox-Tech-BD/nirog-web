@@ -23,6 +23,15 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences/${occurrenceId}/snooze`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences/${occurrenceId}/acknowledge`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/dose-logs`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/adherence/daily`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/adherence/weekly`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/adherence/monthly`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/adherence/streak`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory/movements`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory/refills`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory/refill-alerts/${occurrenceId}/acknowledge`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/ocr-extractions`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/medication-drafts`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medication-drafts/${evidenceId}`)).toBe(true);

@@ -6,6 +6,8 @@ const grantId = '00000000-0000-4000-8000-000000000201';
 const prescriptionId = '00000000-0000-4000-8000-000000000701';
 const evidenceId = '00000000-0000-4000-8000-000000000801';
 const ocrJobId = '00000000-0000-4000-8000-000000000901';
+const regimenId = '00000000-0000-4000-8000-000000000301';
+const occurrenceId = '00000000-0000-4000-8000-000000000401';
 
 describe('Core evidence proxy route policy', () => {
   it('allows profile onboarding plus Core user evidence and OCR-read paths', () => {
@@ -16,6 +18,11 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions/${prescriptionId}/evidence/uploads`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medications`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-schedules`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences/${occurrenceId}/snooze`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences/${occurrenceId}/acknowledge`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/ocr-extractions`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/medication-drafts`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medication-drafts/${evidenceId}`)).toBe(true);

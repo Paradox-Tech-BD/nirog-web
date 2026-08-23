@@ -15,6 +15,7 @@ import {
   type InAppNotificationSummary,
   type InventoryMovementSummary,
   type InventorySummary,
+  type RefillAlertSummary,
   type RegimenSummary,
   type ReminderOccurrenceSummary,
   type ReminderScheduleSummary,
@@ -29,6 +30,7 @@ type ReadState = {
   notifications: InAppNotificationSummary[];
   inventory: InventorySummary | null;
   movements: InventoryMovementSummary[];
+  refillAlerts: RefillAlertSummary[];
   adherence: DailyAdherenceSummary | null;
   streak: AdherenceStreakSummary | null;
   error?: string;
@@ -36,11 +38,17 @@ type ReadState = {
 };
 
 const initialState: ReadState = {
-  phase: 'loading', account: null, regimens: [], reminderSchedules: [], occurrences: [], notifications: [], inventory: null, movements: [], adherence: null, streak: null, refreshing: false,
+  phase: 'loading', account: null, regimens: [], reminderSchedules: [], occurrences: [], notifications: [], inventory: null, movements: [], refillAlerts: [], adherence: null, streak: null, refreshing: false,
 };
 
 function localDate(): string {
-  return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })
+      .formatToParts(new Date())
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function occurrenceWindow(): { from: string; to: string } {
@@ -94,6 +102,7 @@ export function CarePlanWorkspace() {
         readCore<ReminderOccurrenceSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/reminder-occurrences?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}&limit=25`),
         readCore<InventorySummary>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/inventory`),
         readCore<InventoryMovementSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/inventory/movements?limit=8`),
+        readCore<RefillAlertSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/inventory/refill-alerts`),
         readCore<DailyAdherenceSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/adherence/daily?fromDate=${localDate()}&toDate=${localDate()}&timezone=${encodeURIComponent(account.profiles.find((profile) => profile.id === resolvedProfileId)?.timezone ?? 'UTC')}`),
         readCore<AdherenceStreakSummary>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/adherence/streak`),
         readCore<InAppNotificationSummary[]>(`profiles/${resolvedProfileId}/notifications`),
@@ -104,8 +113,8 @@ export function CarePlanWorkspace() {
       setScheduleId((current) => current || schedule);
       setState({
         phase: 'ready', account, regimens,
-        reminderSchedules: value(0, []), occurrences: value(1, []), inventory: value(2, null), movements: value(3, []),
-        adherence: value<DailyAdherenceSummary[]>(4, [])[0] ?? null, streak: value(5, null), notifications: value(6, []),
+        reminderSchedules: value(0, []), occurrences: value(1, []), inventory: value(2, null), movements: value(3, []), refillAlerts: value(4, []),
+        adherence: value<DailyAdherenceSummary[]>(5, [])[0] ?? null, streak: value(6, null), notifications: value(7, []),
         refreshing: false,
       });
     } catch (error) {
@@ -117,6 +126,7 @@ export function CarePlanWorkspace() {
 
   const selectedRegimen = useMemo(() => state.regimens.find((regimen) => regimen.id === regimenId) ?? null, [state.regimens, regimenId]);
   const activeOccurrence = state.occurrences.find((occurrence) => occurrence.state === 'delivered' || occurrence.state === 'snoozed');
+  const openRefillAlert = state.refillAlerts.find((alert) => alert.status === 'open');
   const profileTimezone = state.account?.profiles.find((profile) => profile.id === profileId)?.timezone ?? 'UTC';
 
   async function runAction(label: string, path: string, method: 'POST' | 'PUT', body?: Record<string, string | number>) {
@@ -150,7 +160,7 @@ export function CarePlanWorkspace() {
         </section>
         <section className="care-plan-detail-grid">
           <article className="plan-panel"><div className="plan-panel-heading"><div><p className="eyebrow">In-app delivery</p><h2>Reminder inbox</h2></div><BellRing size={20} /></div><p>These durable records are observable in the signed-in companion. They contain lifecycle identifiers and timestamps, not a prescription transcription or external provider receipt.</p><ul className="plan-list">{state.notifications.length === 0 ? <li><CircleDashed size={16} /> No delivered in-app reminder record is available yet.</li> : state.notifications.map((notification) => <li key={notification.id}><BellRing size={16} /><span><strong>{notification.kind === 'reminder_due' ? 'Reminder due' : notification.kind}</strong><small>{displayTime(notification.createdAt)}</small></span><small>{notification.status}</small></li>)}</ul></article>
-          <article className="plan-panel"><div className="plan-panel-heading"><div><p className="eyebrow">Refill ledger</p><h2>Inventory movements</h2></div><PackageCheck size={20} /></div><p>Inventory is changed only by an explicit initialization, dose outcome, or refill command. The movement log exposes the aggregate ledger state.</p><div className="plan-form-row"><label>Quantity added<input inputMode="decimal" onChange={(event) => setRefillQuantity(event.target.value)} value={refillQuantity} /></label><button className="button button-secondary" disabled={Boolean(busy)} onClick={() => void runAction('Refill record', `profiles/${profileId}/regimens/${regimenId}/inventory/refills`, 'POST', { quantityAdded: refillQuantity })} type="button"><PackageCheck size={16} /> {busy === 'Refill record' ? 'Saving…' : 'Record refill'}</button></div><label className="visually-available">Dose time (optional)<input type="datetime-local" onChange={(event) => setDoseAt(event.target.value)} value={doseAt} /></label><ul className="plan-list">{state.movements.length === 0 ? <li><CircleDashed size={16} /> No inventory movement is available yet.</li> : state.movements.map((movement) => <li key={movement.id}><span><strong>{movement.kind.replace('_', ' ')}</strong><small>{displayTime(movement.occurredAt)}</small></span><small>{movement.quantityDelta}</small></li>)}</ul></article>
+          <article className="plan-panel"><div className="plan-panel-heading"><div><p className="eyebrow">Refill ledger</p><h2>Inventory movements</h2></div><PackageCheck size={20} /></div><p>Inventory is changed only by an explicit initialization, dose outcome, or refill command. The movement log exposes the aggregate ledger state.</p><div className="plan-form-row"><label>Quantity added<input inputMode="decimal" onChange={(event) => setRefillQuantity(event.target.value)} value={refillQuantity} /></label><button className="button button-secondary" disabled={Boolean(busy)} onClick={() => void runAction('Refill record', `profiles/${profileId}/regimens/${regimenId}/inventory/refills`, 'POST', { quantityAdded: refillQuantity })} type="button"><PackageCheck size={16} /> {busy === 'Refill record' ? 'Saving…' : 'Record refill'}</button></div><label className="visually-available">Dose time (optional)<input type="datetime-local" onChange={(event) => setDoseAt(event.target.value)} value={doseAt} /></label>{openRefillAlert && <div className="care-boundary"><AlertTriangle size={16} /><span>Refill threshold alert is open.</span><button className="button button-secondary" disabled={Boolean(busy)} onClick={() => void runAction('Refill alert acknowledgement', `profiles/${profileId}/regimens/${regimenId}/inventory/refill-alerts/${openRefillAlert.id}/acknowledge`, 'POST')} type="button">Acknowledge</button></div>}<ul className="plan-list">{state.movements.length === 0 ? <li><CircleDashed size={16} /> No inventory movement is available yet.</li> : state.movements.map((movement) => <li key={movement.id}><span><strong>{movement.kind.replace('_', ' ')}</strong><small>{displayTime(movement.occurredAt)}</small></span><small>{movement.quantityDelta}</small></li>)}</ul></article>
         </section>
       </>}
     </>}

@@ -32,6 +32,7 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory/movements`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory/refills`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory/refill-alerts`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/inventory/refill-alerts/${occurrenceId}/acknowledge`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/ocr-extractions`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/evidence/${evidenceId}/medication-drafts`)).toBe(true);

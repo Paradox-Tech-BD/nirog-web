@@ -18,6 +18,7 @@ const allowedPath = [
   /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/inventory$/,
   /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/inventory\/movements$/,
   /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/inventory\/refills$/,
+  /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/inventory\/refill-alerts$/,
   /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/inventory\/refill-alerts\/[0-9a-f-]{36}\/acknowledge$/,
   /^profiles\/[0-9a-f-]{36}\/evidence\/[0-9a-f-]{36}\/ocr-extractions$/,
   /^profiles\/[0-9a-f-]{36}\/evidence\/[0-9a-f-]{36}\/medication-drafts$/,

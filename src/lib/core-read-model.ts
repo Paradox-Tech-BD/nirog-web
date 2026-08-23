@@ -124,6 +124,12 @@ export type InventoryMovementSummary = {
   occurredAt: string;
 };
 
+export type RefillAlertSummary = {
+  id: string;
+  status: 'open' | 'acknowledged' | 'resolved';
+  acknowledgedAt?: string;
+};
+
 export type DailyAdherenceSummary = {
   localDate: string;
   scheduledCount: number;

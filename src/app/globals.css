@@ -220,6 +220,7 @@ a { color:inherit; text-decoration:none; }
 .file-picker input { width:min(13rem,100%); color:#58706d; font:inherit; font-weight:500; }
 .file-picker input::file-selector-button { margin-right:.55rem; border:1px solid rgba(34,118,103,.32); background:#edf5f1; color:var(--path-deep); cursor:pointer; font:inherit; font-weight:700; padding:.45rem .6rem; }
 .file-picker input:disabled { cursor:not-allowed; opacity:.6; }
+.read-only-chip { display:inline-flex; align-items:center; gap:.36rem; justify-self:end; padding:.48rem .62rem; border:1px solid rgba(34,118,103,.22); background:#edf5f1; color:#315e56; font-size:.68rem; font-weight:760; white-space:nowrap; }
 .upload-cta { width:100%; margin-top:.75rem; background:var(--path-deep); }
 .upload-cta:hover:not(:disabled) { background:var(--path-deep-2); }
 .status-timeline { display:grid; gap:1rem; margin-top:1.35rem; }
@@ -257,6 +258,7 @@ a { color:inherit; text-decoration:none; }
 .draft-stage .state-line { color:#d5e5dc; }
 .draft-stage .state-line-empty { color:#b9c9c1; }
 .draft-stage .medication-draft-card { border-color:rgba(255,255,255,.16); border-radius:0; background:#f8fbf7; }
+.read-only-draft-card .care-boundary { padding-top:.2rem; }
 .draft-stage .care-boundary { color:#38695f; }
 .care-circle-selector { display:flex; align-items:end; gap:1.2rem; padding:1.1rem 1.3rem; border:1px solid var(--path-line); background:var(--path-paper); }
 .care-circle-selector label { width:min(100%,20rem); }

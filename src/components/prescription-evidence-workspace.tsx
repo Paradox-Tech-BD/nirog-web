@@ -31,6 +31,7 @@ import {
   type EvidenceSummary,
   type ExtractionSummary,
   type MedicationDraftSummary,
+  type ProfileAccessContext,
   type PrescriptionSummary,
   type ProfileGrantSummary,
 } from '@/lib/core-read-model';
@@ -50,6 +51,7 @@ type DraftForm = {
 type WorkspaceData = {
   account: AccountProjection | null;
   profileId: string;
+  accessContext: ProfileAccessContext | null;
   prescriptionId: string;
   prescriptions: PrescriptionSummary[];
   evidence: EvidenceSummary[];
@@ -80,6 +82,7 @@ function emptyData(): WorkspaceData {
   return {
     account: null,
     profileId: '',
+    accessContext: null,
     prescriptionId: '',
     prescriptions: [],
     evidence: [],
@@ -139,33 +142,38 @@ export function PrescriptionEvidenceWorkspace() {
         return;
       }
 
+      const accessContext = await readCore<ProfileAccessContext>(`profiles/${profileId}/access-context`);
+      const canManageShares = accessContext.permissions.includes('share.manage');
       const prescriptions = await readCore<PrescriptionSummary[]>(`profiles/${profileId}/prescriptions`);
       const prescriptionId = requestedPrescriptionId || prescriptions[0]?.id || '';
       if (!prescriptionId) {
-        const grantResult = await Promise.allSettled([
-          readCore<ProfileGrantSummary[]>(`profiles/${profileId}/access-grants`),
-        ]);
-        const grants = grantResult[0].status === 'fulfilled' ? grantResult[0].value : [];
-        const notices = grantResult[0].status === 'rejected'
+        const grantResult = canManageShares
+          ? await Promise.allSettled([readCore<ProfileGrantSummary[]>(`profiles/${profileId}/access-grants`)])
+          : [];
+        const grants = grantResult[0]?.status === 'fulfilled' ? grantResult[0].value : [];
+        const notices = grantResult[0]?.status === 'rejected'
           ? ['Care-circle access information is temporarily unavailable. Prescription access is unaffected.']
           : [];
-        setView({ phase: 'ready', refreshing: false, data: { ...emptyData(), account, profileId, prescriptions, grants, notices } });
+        setView({ phase: 'ready', refreshing: false, data: { ...emptyData(), account, profileId, accessContext, prescriptions, grants, notices } });
         return;
       }
 
       const evidence = await readCore<EvidenceSummary[]>(`profiles/${profileId}/prescriptions/${prescriptionId}/evidence`);
       const latestEvidence = newestEvidence(evidence);
+      const grantPromise: Promise<ProfileGrantSummary[]> = canManageShares
+        ? readCore<ProfileGrantSummary[]>(`profiles/${profileId}/access-grants`)
+        : Promise.resolve([]);
       const [grantResult, extractionResult, draftResult] = await Promise.allSettled([
-        readCore<ProfileGrantSummary[]>(`profiles/${profileId}/access-grants`),
+        grantPromise,
         latestEvidence ? readCore<ExtractionSummary[]>(`profiles/${profileId}/evidence/${latestEvidence.id}/ocr-extractions`) : Promise.resolve([]),
         latestEvidence ? readCore<MedicationDraftSummary[]>(`profiles/${profileId}/evidence/${latestEvidence.id}/medication-drafts`) : Promise.resolve([]),
-      ]);
+      ] as const);
 
       const notices: string[] = [];
       const grants = grantResult.status === 'fulfilled' ? grantResult.value : [];
       const extractions = extractionResult.status === 'fulfilled' ? extractionResult.value : [];
       const drafts = draftResult.status === 'fulfilled' ? draftResult.value : [];
-      if (grantResult.status === 'rejected') notices.push('Care-circle access information could not be refreshed. Evidence processing remains available.');
+      if (canManageShares && grantResult.status === 'rejected') notices.push('Care-circle access information could not be refreshed. Evidence processing remains available.');
       if (extractionResult.status === 'rejected') notices.push('Extraction status could not be refreshed yet. Try again shortly.');
       if (draftResult.status === 'rejected') notices.push('Medication drafts could not be refreshed yet. Your evidence record remains unchanged.');
 
@@ -173,7 +181,7 @@ export function PrescriptionEvidenceWorkspace() {
       setView({
         phase: 'ready',
         refreshing: false,
-        data: { account, profileId, prescriptionId, prescriptions, evidence, extractions, drafts, grants, notices },
+        data: { account, profileId, accessContext, prescriptionId, prescriptions, evidence, extractions, drafts, grants, notices },
       });
     } catch (error) {
       setView((current) => ({
@@ -205,7 +213,7 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const createPrescription = async () => {
-    if (!data.profileId) return;
+    if (!data.profileId || !data.accessContext?.permissions.includes('document.create')) return;
     try {
       const created = await readCore<{ id: string }>(`profiles/${data.profileId}/prescriptions`, {
         method: 'POST',
@@ -227,7 +235,7 @@ export function PrescriptionEvidenceWorkspace() {
 
   const uploadEvidence = async () => {
     const file = upload.file;
-    if (!file || !data.profileId || !data.prescriptionId) return;
+    if (!file || !data.profileId || !data.prescriptionId || !data.accessContext?.permissions.includes('document.create')) return;
     const validationError = validateEvidenceFile(file);
     if (validationError) {
       setUpload({ status: 'error', file, message: validationError });
@@ -256,12 +264,13 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const updateDraft = (draftId: string, key: keyof DraftForm, value: string) => {
+    if (!data.accessContext?.permissions.includes('regimen.write')) return;
     setDraftForms((current) => ({ ...current, [draftId]: { ...current[draftId], [key]: value } }));
   };
 
   const submitDraft = async (draft: MedicationDraftSummary) => {
     const form = draftForms[draft.id];
-    if (!form || !data.profileId) return;
+    if (!form || !data.profileId || !data.accessContext?.permissions.includes('regimen.write')) return;
     const scheduleTimes = form.scheduleTimes.split(',').map((time) => time.trim()).filter(Boolean);
     const intervalDays = Number(form.intervalDays);
     if (!form.medicationName || !form.doseQuantity || !form.doseUnitCode || !form.routeCode || !form.frequencyText || !scheduleTimes.length || !Number.isInteger(intervalDays)) {
@@ -302,7 +311,10 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const uploadBusy = ['authorizing', 'transferring', 'queueing'].includes(upload.status);
-  const fileControlDisabled = !data.prescriptionId || uploadBusy || view.phase === 'loading';
+  const canCreateDocuments = data.accessContext?.permissions.includes('document.create') ?? false;
+  const canWriteRegimen = data.accessContext?.permissions.includes('regimen.write') ?? false;
+  const canManageShares = data.accessContext?.permissions.includes('share.manage') ?? false;
+  const fileControlDisabled = !data.prescriptionId || !canCreateDocuments || uploadBusy || view.phase === 'loading';
   const activeGrants = data.grants.filter((grant) => grant.status === 'active');
   const latestEvidence = newestEvidence(data.evidence);
 
@@ -329,7 +341,7 @@ export function PrescriptionEvidenceWorkspace() {
           <div className="pathway-controls">
             <label>Profile<select value={data.profileId} onChange={(event) => selectProfile(event.target.value)} disabled={view.phase === 'loading'}><option value="">Select a profile</option>{data.account?.profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.preferredName}</option>)}</select></label>
             <label>Prescription<select value={data.prescriptionId} onChange={(event) => selectPrescription(event.target.value)} disabled={!data.profileId || view.phase === 'loading'}><option value="">Select a prescription</option>{data.prescriptions.map((prescription, index) => <option value={prescription.id} key={prescription.id}>{prescription.prescriberLabel ?? `Prescription ${index + 1}`}</option>)}</select></label>
-            <button className="button button-secondary" disabled={!data.profileId || view.phase === 'loading' || uploadBusy} onClick={() => void createPrescription()} type="button">New prescription</button>
+            <button className="button button-secondary" disabled={!data.profileId || !canCreateDocuments || view.phase === 'loading' || uploadBusy} onClick={() => void createPrescription()} type="button">New prescription</button>
           </div>
         </section>
 
@@ -337,13 +349,13 @@ export function PrescriptionEvidenceWorkspace() {
           <article className="journey-card journey-upload">
             <div className="card-kicker"><span>02</span><p className="eyebrow">Secure intake</p></div>
             <h2>Add a prescription file</h2>
-            <p>JPEG, PNG, WebP, or PDF, up to 10 MB. Extraction begins automatically after the protected upload completes.</p>
+            <p>{canCreateDocuments ? 'JPEG, PNG, WebP, or PDF, up to 10 MB. Extraction begins automatically after the protected upload completes.' : 'This delegated session can inspect the authorized record, but cannot add files or create prescription containers.'}</p>
             <div className="upload-tray">
               <span className="upload-icon">{upload.status === 'complete' ? <FileCheck2 size={22} /> : <FileUp size={22} />}</span>
               <div><strong>{upload.file ? upload.file.name : 'No file selected'}</strong><p>{upload.file ? `${formatEvidenceBytes(upload.file.size)} · ${upload.file.type}` : fileControlDisabled ? 'Choose a profile and prescription first.' : 'Choose a file to begin.'}</p></div>
-              <label className="file-picker"><span>{upload.file ? 'Replace file' : 'Choose file'}</span><input aria-label="Choose prescription evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={fileControlDisabled} onChange={(event) => selectFile(event.target.files?.[0])} /></label>
+              {canCreateDocuments ? <label className="file-picker"><span>{upload.file ? 'Replace file' : 'Choose file'}</span><input aria-label="Choose prescription evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={fileControlDisabled} onChange={(event) => selectFile(event.target.files?.[0])} /></label> : <span className="read-only-chip"><ShieldCheck size={15} /> Read-only access</span>}
             </div>
-            <button className="button button-primary upload-cta" disabled={upload.status !== 'ready' || uploadBusy} onClick={() => void uploadEvidence()} type="button">{uploadBusy ? <><LoaderCircle className="spin" size={16} /> Working securely</> : <><UploadCloud size={16} /> Start automatic extraction</>}</button>
+            {canCreateDocuments && <button className="button button-primary upload-cta" disabled={upload.status !== 'ready' || uploadBusy} onClick={() => void uploadEvidence()} type="button">{uploadBusy ? <><LoaderCircle className="spin" size={16} /> Working securely</> : <><UploadCloud size={16} /> Start automatic extraction</>}</button>}
             {upload.status !== 'idle' && <p className={upload.status === 'error' ? 'upload-feedback is-error' : 'upload-feedback'} role={upload.status === 'error' ? 'alert' : 'status'}>{uploadBusy ? <LoaderCircle className="spin" size={16} /> : upload.status === 'complete' ? <CheckCircle2 size={16} /> : null}{upload.message ?? 'File ready for automatic extraction.'}</p>}
           </article>
 
@@ -364,14 +376,15 @@ export function PrescriptionEvidenceWorkspace() {
           <article className="journey-card care-circle-card">
             <div className="card-kicker"><span>05</span><p className="eyebrow">Care-circle access</p></div>
             <h2>Authorized people, visible boundaries</h2>
-            {view.phase === 'loading' ? <LoadingLine label="Loading authorized access…" /> : activeGrants.length === 0 ? <EmptyLine label="No additional active profile grants are recorded for this care context." /> : <ul className="grant-list">{activeGrants.map((grant) => <li key={grant.id}><span className="grant-icon"><UsersRound size={16} /></span><div><strong>{accessLabel(grant)}</strong><p>{grant.permissions.length} permission{grant.permissions.length === 1 ? '' : 's'} · {grant.expiresAt ? 'time-limited access' : 'active access'}</p></div><span className="status-chip">Active</span></li>)}</ul>}
+            {view.phase === 'loading' ? <LoadingLine label="Loading authorized access…" /> : !canManageShares && data.accessContext ? <p className="state-line state-line-empty"><ShieldCheck size={17} /> Your delegated relationship is active. Full grant-roster management is limited to authorized managers.</p> : activeGrants.length === 0 ? <EmptyLine label="No additional active profile grants are recorded for this care context." /> : <ul className="grant-list">{activeGrants.map((grant) => <li key={grant.id}><span className="grant-icon"><UsersRound size={16} /></span><div><strong>{accessLabel(grant)}</strong><p>{grant.permissions.length} permission{grant.permissions.length === 1 ? '' : 's'} · {grant.expiresAt ? 'time-limited access' : 'active access'}</p></div><span className="status-chip">Active</span></li>)}</ul>}
             <p className="care-boundary"><ShieldCheck size={15} /> Caregivers can inspect access, provenance, and draft status. They do not block extraction and do not receive regimen-write by default.</p>
           </article>
         </section>
 
         <section className="draft-stage">
-          <div className="draft-stage-heading"><div><p className="eyebrow">06 · Editable draft</p><h2>Confirm the auto-populated medication draft</h2><p>Fields meeting the 70% confidence threshold can populate automatically. Missing or uncertain values remain visibly editable for the patient or an authorized caregiver.</p></div><span>{data.drafts.length} draft{data.drafts.length === 1 ? '' : 's'}</span></div>
+          <div className="draft-stage-heading"><div><p className="eyebrow">06 · {canWriteRegimen ? 'Editable draft' : 'Draft status'}</p><h2>{canWriteRegimen ? 'Confirm the auto-populated medication draft' : 'Inspect the automatic draft status'}</h2><p>{canWriteRegimen ? 'Fields meeting the 70% confidence threshold can populate automatically. Missing or uncertain values remain visibly editable for the patient or an authorized caregiver.' : 'This delegated session can inspect authorized extraction provenance, confidence, and draft state. Clinical fields and regimen confirmation remain unavailable without explicit regimen-write authority.'}</p></div><span>{data.drafts.length} draft{data.drafts.length === 1 ? '' : 's'}</span></div>
           {view.phase === 'loading' ? <LoadingLine label="Loading medication drafts…" /> : data.drafts.length === 0 ? <EmptyLine label="An editable draft will appear here when automatic extraction is complete." /> : <div className="draft-list">{data.drafts.map((draft) => {
+            if (!canWriteRegimen) return <ReadOnlyMedicationDraftSummary draft={draft} key={draft.id} />;
             const form = draftForms[draft.id] ?? formFromDraft(draft);
             const correctionNeeded = requiresCorrection(draft);
             const action = draftAction?.draftId === draft.id ? draftAction : null;
@@ -389,4 +402,9 @@ function LoadingLine({ label }: { label: string }) {
 
 function EmptyLine({ label }: { label: string }) {
   return <p className="state-line state-line-empty"><CircleDashed size={17} /> {label}</p>;
+}
+
+function ReadOnlyMedicationDraftSummary({ draft }: { draft: MedicationDraftSummary }) {
+  const correctionNeeded = requiresCorrection(draft);
+  return <article className="medication-draft-card read-only-draft-card"><header><div><span className={correctionNeeded ? 'draft-status needs-correction' : 'draft-status ready'}>{correctionNeeded ? <AlertTriangle size={15} /> : <Sparkles size={15} />}{correctionNeeded ? 'Correction may be needed' : 'High-confidence fields recorded'}</span><h3>Medication candidate {draft.candidateIndex + 1}</h3></div><span className="draft-provenance">Automatic extraction · read-only view</span></header><div className="confidence-grid"><span>Name {formatConfidence(draft.medicationNameConfidence)}</span><span>Dose {formatConfidence(draft.doseConfidence)}</span><span>Route {formatConfidence(draft.routeConfidence)}</span><span>Frequency {formatConfidence(draft.frequencyConfidence)}</span></div><p className="care-boundary"><ShieldCheck size={16} /> This caregiver session can inspect draft status but cannot edit clinical fields or confirm a medication regimen.</p></article>;
 }

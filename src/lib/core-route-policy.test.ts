@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { isAllowedCoreEvidencePath } from './core-route-policy';
 
 const profileId = '00000000-0000-4000-8000-000000000101';
+const grantId = '00000000-0000-4000-8000-000000000201';
 const prescriptionId = '00000000-0000-4000-8000-000000000701';
 const evidenceId = '00000000-0000-4000-8000-000000000801';
 const ocrJobId = '00000000-0000-4000-8000-000000000901';
@@ -11,6 +12,7 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath('profiles')).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-context`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-grants`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-grants/${grantId}`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/prescriptions/${prescriptionId}/evidence/uploads`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens`)).toBe(true);

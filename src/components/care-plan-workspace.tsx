@@ -4,9 +4,10 @@
 'use client';
 
 import { AlertTriangle, BellRing, CheckCircle2, CircleDashed, ClipboardCheck, PackageCheck, RefreshCw, Send, TimerReset } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import type { AccountProjection } from '@/lib/core-api';
+import { carePlanReadPaths } from '@/lib/care-plan-read-paths';
 import {
   coreMessage,
   readCore,
@@ -41,16 +42,6 @@ const initialState: ReadState = {
   phase: 'loading', account: null, regimens: [], reminderSchedules: [], occurrences: [], notifications: [], inventory: null, movements: [], refillAlerts: [], adherence: null, streak: null, refreshing: false,
 };
 
-function localDate(): string {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })
-      .formatToParts(new Date())
-      .filter((part) => part.type !== 'literal')
-      .map((part) => [part.type, part.value]),
-  );
-  return `${parts.year}-${parts.month}-${parts.day}`;
-}
-
 function occurrenceWindow(): { from: string; to: string } {
   const now = new Date();
   const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -68,6 +59,16 @@ function actionHeaders(): HeadersInit {
   return { 'content-type': 'application/json', 'idempotency-key': `care-plan-${crypto.randomUUID()}` };
 }
 
+async function boundedCareRead<T>(path: string): Promise<T> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 8_000);
+  try {
+    return await readCore<T>(path, { signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 export function CarePlanWorkspace() {
   const [state, setState] = useState<ReadState>(initialState);
   const [profileId, setProfileId] = useState('');
@@ -80,37 +81,47 @@ export function CarePlanWorkspace() {
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [busy, setBusy] = useState('');
+  const selectionRef = useRef({ profileId: '', regimenId: '' });
+  const loadVersionRef = useRef(0);
 
   const load = useCallback(async (requestedProfileId = '', requestedRegimenId = '') => {
+    const loadVersion = ++loadVersionRef.current;
+    const priorSelection = selectionRef.current;
     setState((current) => ({ ...current, phase: current.account ? 'ready' : 'loading', refreshing: Boolean(current.account), error: undefined }));
     try {
-      const account = await readCore<AccountProjection>('me');
-      const resolvedProfileId = requestedProfileId || profileId || account.profiles[0]?.id || '';
+      const account = await boundedCareRead<AccountProjection>('me');
+      const resolvedProfileId = requestedProfileId || priorSelection.profileId || account.profiles[0]?.id || '';
       if (!resolvedProfileId) {
+        if (loadVersion !== loadVersionRef.current) return;
+        selectionRef.current = { profileId: '', regimenId: '' };
         setProfileId('');
         setRegimenId('');
         setState({ ...initialState, phase: 'ready', account, error: 'A profile is required before a care plan can be loaded.' });
         return;
       }
-      const regimens = await readCore<RegimenSummary[]>(`profiles/${resolvedProfileId}/medications`);
-      const resolvedRegimenId = requestedRegimenId || (resolvedProfileId === profileId ? regimenId : '') || regimens[0]?.id || '';
+      const regimens = await boundedCareRead<RegimenSummary[]>(`profiles/${resolvedProfileId}/medications`);
+      const resolvedRegimenId = requestedRegimenId || (resolvedProfileId === priorSelection.profileId ? priorSelection.regimenId : '') || regimens[0]?.id || '';
       const selected = regimens.find((regimen) => regimen.id === resolvedRegimenId);
       const schedule = selected?.schedules[0]?.id || '';
       const window = occurrenceWindow();
+      const timezone = account.profiles.find((profile) => profile.id === resolvedProfileId)?.timezone ?? 'UTC';
+      const paths = carePlanReadPaths({ profileId: resolvedProfileId, regimenId: resolvedRegimenId, timezone, occurrenceFrom: window.from, occurrenceTo: window.to });
       const results = resolvedRegimenId ? await Promise.allSettled([
-        readCore<ReminderScheduleSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/reminder-schedules`),
-        readCore<ReminderOccurrenceSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/reminder-occurrences?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}&limit=25`),
-        readCore<InventorySummary>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/inventory`),
-        readCore<InventoryMovementSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/inventory/movements?limit=8`),
-        readCore<RefillAlertSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/inventory/refill-alerts`),
-        readCore<DailyAdherenceSummary[]>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/adherence/daily?fromDate=${localDate()}&toDate=${localDate()}&timezone=${encodeURIComponent(account.profiles.find((profile) => profile.id === resolvedProfileId)?.timezone ?? 'UTC')}`),
-        readCore<AdherenceStreakSummary>(`profiles/${resolvedProfileId}/regimens/${resolvedRegimenId}/adherence/streak`),
-        readCore<InAppNotificationSummary[]>(`profiles/${resolvedProfileId}/notifications`),
+        boundedCareRead<ReminderScheduleSummary[]>(paths.reminderSchedules),
+        boundedCareRead<ReminderOccurrenceSummary[]>(paths.occurrences),
+        boundedCareRead<InventorySummary>(paths.inventory),
+        boundedCareRead<InventoryMovementSummary[]>(paths.movements),
+        boundedCareRead<RefillAlertSummary[]>(paths.refillAlerts),
+        boundedCareRead<DailyAdherenceSummary[]>(paths.dailyAdherence),
+        boundedCareRead<AdherenceStreakSummary>(paths.streak),
+        boundedCareRead<InAppNotificationSummary[]>(paths.notifications),
       ]) : [];
+      if (loadVersion !== loadVersionRef.current) return;
       const value = <T,>(index: number, fallback: T): T => results[index]?.status === 'fulfilled' ? results[index].value as T : fallback;
+      selectionRef.current = { profileId: resolvedProfileId, regimenId: resolvedRegimenId };
       setProfileId(resolvedProfileId);
       setRegimenId(resolvedRegimenId);
-      setScheduleId((current) => current || schedule);
+      setScheduleId((current) => priorSelection.regimenId === resolvedRegimenId ? current || schedule : schedule);
       setState({
         phase: 'ready', account, regimens,
         reminderSchedules: value(0, []), occurrences: value(1, []), inventory: value(2, null), movements: value(3, []), refillAlerts: value(4, []),
@@ -118,9 +129,10 @@ export function CarePlanWorkspace() {
         refreshing: false,
       });
     } catch (error) {
-      setState((current) => ({ ...current, phase: current.account ? 'ready' : 'loading', refreshing: false, error: coreMessage(error, 'Care-plan data could not be loaded. No care record was changed.') }));
+      if (loadVersion !== loadVersionRef.current) return;
+      setState((current) => ({ ...current, phase: 'ready', refreshing: false, error: coreMessage(error, 'Care-plan data could not be loaded. No care record was changed.') }));
     }
-  }, [profileId, regimenId]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 

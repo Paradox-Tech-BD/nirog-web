@@ -216,7 +216,10 @@ a { color:inherit; text-decoration:none; }
 .upload-tray > div { min-width:0; }
 .upload-tray strong { display:block; overflow:hidden; color:var(--path-ink); font-size:.82rem; text-overflow:ellipsis; white-space:nowrap; }
 .upload-tray p { margin:.22rem 0 0; color:#647579; font-size:.7rem; }
-.upload-tray input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+.file-picker { display:grid; gap:.35rem; color:var(--path-ink); font-size:.72rem; font-weight:700; line-height:1.2; }
+.file-picker input { width:min(13rem,100%); color:#58706d; font:inherit; font-weight:500; }
+.file-picker input::file-selector-button { margin-right:.55rem; border:1px solid rgba(34,118,103,.32); background:#edf5f1; color:var(--path-deep); cursor:pointer; font:inherit; font-weight:700; padding:.45rem .6rem; }
+.file-picker input:disabled { cursor:not-allowed; opacity:.6; }
 .upload-cta { width:100%; margin-top:.75rem; background:var(--path-deep); }
 .upload-cta:hover:not(:disabled) { background:var(--path-deep-2); }
 .status-timeline { display:grid; gap:1rem; margin-top:1.35rem; }

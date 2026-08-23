@@ -125,6 +125,10 @@ function accessLabel(grant: ProfileGrantSummary): string {
   return 'Viewer access';
 }
 
+function hasOwnerOrPermission(accessContext: ProfileAccessContext | null, permission: string): boolean {
+  return accessContext?.accessKind === 'owner' || accessContext?.permissions.includes(permission) === true;
+}
+
 export function PrescriptionEvidenceWorkspace() {
   const [view, setView] = useState<ViewState>({ phase: 'loading', data: null });
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' });
@@ -213,7 +217,7 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const createPrescription = async () => {
-    if (!data.profileId || !data.accessContext?.permissions.includes('document.create')) return;
+    if (!data.profileId || !hasOwnerOrPermission(data.accessContext, 'document.create')) return;
     try {
       const created = await readCore<{ id: string }>(`profiles/${data.profileId}/prescriptions`, {
         method: 'POST',
@@ -235,7 +239,7 @@ export function PrescriptionEvidenceWorkspace() {
 
   const uploadEvidence = async () => {
     const file = upload.file;
-    if (!file || !data.profileId || !data.prescriptionId || !data.accessContext?.permissions.includes('document.create')) return;
+    if (!file || !data.profileId || !data.prescriptionId || !hasOwnerOrPermission(data.accessContext, 'document.create')) return;
     const validationError = validateEvidenceFile(file);
     if (validationError) {
       setUpload({ status: 'error', file, message: validationError });
@@ -264,13 +268,13 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const updateDraft = (draftId: string, key: keyof DraftForm, value: string) => {
-    if (!data.accessContext?.permissions.includes('regimen.write')) return;
+    if (!hasOwnerOrPermission(data.accessContext, 'regimen.write')) return;
     setDraftForms((current) => ({ ...current, [draftId]: { ...current[draftId], [key]: value } }));
   };
 
   const submitDraft = async (draft: MedicationDraftSummary) => {
     const form = draftForms[draft.id];
-    if (!form || !data.profileId || !data.accessContext?.permissions.includes('regimen.write')) return;
+    if (!form || !data.profileId || !hasOwnerOrPermission(data.accessContext, 'regimen.write')) return;
     const scheduleTimes = form.scheduleTimes.split(',').map((time) => time.trim()).filter(Boolean);
     const intervalDays = Number(form.intervalDays);
     if (!form.medicationName || !form.doseQuantity || !form.doseUnitCode || !form.routeCode || !form.frequencyText || !scheduleTimes.length || !Number.isInteger(intervalDays)) {
@@ -311,8 +315,8 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const uploadBusy = ['authorizing', 'transferring', 'queueing'].includes(upload.status);
-  const canCreateDocuments = data.accessContext?.permissions.includes('document.create') ?? false;
-  const canWriteRegimen = data.accessContext?.permissions.includes('regimen.write') ?? false;
+  const canCreateDocuments = hasOwnerOrPermission(data.accessContext, 'document.create');
+  const canWriteRegimen = hasOwnerOrPermission(data.accessContext, 'regimen.write');
   const canManageShares = data.accessContext?.permissions.includes('share.manage') ?? false;
   const fileControlDisabled = !data.prescriptionId || !canCreateDocuments || uploadBusy || view.phase === 'loading';
   const activeGrants = data.grants.filter((grant) => grant.status === 'active');

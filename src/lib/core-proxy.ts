@@ -36,7 +36,8 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
       body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text(),
       cache: 'no-store',
     });
-    return new NextResponse(await response.text(), {
+    const responseBody = [204, 205, 304].includes(response.status) ? null : await response.text();
+    return new NextResponse(responseBody, {
       status: response.status,
       headers: {
         'content-type': response.headers.get('content-type') ?? 'application/json',

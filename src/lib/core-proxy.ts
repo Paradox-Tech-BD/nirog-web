@@ -39,12 +39,6 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
       body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text(),
       cache: 'no-store',
     });
-    if (path === 'delivery-registrations/web-push/config') {
-      console.info('Browser push capability proxy upstream evaluated', {
-        coreHost: new URL(apiRoot).host,
-        upstreamStatus: response.status,
-      });
-    }
     const responseHeaders = {
       'content-type': response.headers.get('content-type') ?? 'application/json',
       ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),

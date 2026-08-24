@@ -38,3 +38,4 @@
 - [x] Add an isolated no-profile workspace regression that proves inline Core-authoritative profile onboarding appears before any prescription or evidence action is enabled.
 - [x] Review the existing Core and OCR Ops lifecycle contracts for a future operator-only status design that exposes identifiers and states only, never evidence or OCR text.
 - [ ] Add Core-owned `operations.read` authorization and an aggregate-only operator-status contract before creating any browser-visible operations view.
+- [x] Diagnose the deployed sandbox test session’s evidence-workspace refresh stall without creating, modifying, or inspecting patient evidence; the same-origin account bridge returns successfully and a read-only refresh reaches the authorized ready state without client-console errors.

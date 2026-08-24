@@ -5,6 +5,7 @@ import { ArrowRight, CircleAlert, LoaderCircle, RefreshCw, ShieldCheck, UsersRou
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { ProfileCreationForm } from '@/components/profile-creation-form';
 import type { AccountProjection, CoreProblem, CoreSuccess } from '@/lib/core-api';
 import { isCoreProblem } from '@/lib/core-api';
 
@@ -78,7 +79,7 @@ export function CareWorkspace() {
 
         {state.status === 'loading' && <LoadingRecord />}
         {state.status === 'error' && <ConnectionRecord problem={state.problem} onRetry={loadProjection} />}
-        {state.status === 'ready' && <VerifiedRecord projection={state.projection} correlationId={state.correlationId} />}
+        {state.status === 'ready' && <VerifiedRecord projection={state.projection} correlationId={state.correlationId} onProfileCreated={loadProjection} />}
       </div>
     </AppShell>
   );
@@ -92,42 +93,9 @@ function ConnectionRecord({ problem, onRetry }: { problem: CoreProblem; onRetry:
   return <section className="state-card state-card-warning" aria-live="polite"><CircleAlert size={22} /><div><p className="eyebrow">Connection needs attention</p><h2>{problem.title}</h2><p>{problem.detail ?? 'The Nirog Core connection needs attention before the record can load.'}</p><button className="button button-primary" onClick={onRetry} type="button"><RefreshCw size={16} /> Try again</button></div></section>;
 }
 
-function VerifiedRecord({ projection, correlationId }: { projection: AccountProjection; correlationId: string }) {
+function VerifiedRecord({ projection, correlationId, onProfileCreated }: { projection: AccountProjection; correlationId: string; onProfileCreated: () => void }) {
   const firstProfile = projection.profiles[0];
   const profileCount = projection.profiles.length;
 
-  return <div className="workspace-grid"><section className="overview-card overview-primary" id="profiles"><div className="overview-card-top"><span className="icon-circle"><UsersRound size={20} /></span><span className="status-chip"><ShieldCheck size={14} /> Core verified</span></div><p className="eyebrow">Profile context</p><h2>{profileCount === 0 ? 'No patient profile is available yet.' : firstProfile?.preferredName ?? `${profileCount} profile${profileCount === 1 ? '' : 's'} available`}</h2><p>{profileCount === 0 ? 'Create or obtain access to a profile before adding prescription evidence.' : `${profileCount} profile${profileCount === 1 ? '' : 's'} are available to your signed-in account. Evidence and access stay within the selected profile.`}</p>{profileCount === 0 ? <ProfileOnboarding defaultTimezone={projection.preferences.timezone} onCreated={() => window.location.reload()} /> : <Link className="inline-link" href="/evidence">Open prescription workspace <ArrowRight size={16} /></Link>}</section><section className="overview-card"><p className="eyebrow">Care preferences</p><h2>{projection.preferences.timezone}</h2><p>{projection.preferences.notificationsEnabled ? 'Notifications are enabled for this account.' : 'Notifications are currently paused for this account.'}</p></section><section className="overview-card"><p className="eyebrow">Automatic intake</p><h2>Draft-ready</h2><p>Prescription evidence is processed automatically into editable medication drafts. A regimen exists only after an explicit authorized submission.</p><Link className="inline-link" href="/evidence">Follow prescription status <ArrowRight size={16} /></Link></section><section className="overview-card overview-wide"><div><p className="eyebrow">Connection details</p><h2>Your care record is ready when you are.</h2><p>Core identity, profile access, prescription processing, and caregiver visibility each stay within their own controlled boundary.</p></div><div className="connection-code"><span>SESSION</span><strong>{correlationId.slice(0, 8)}</strong></div></section></div>;
-}
-
-function ProfileOnboarding({ defaultTimezone, onCreated }: { defaultTimezone: string; onCreated: () => void }) {
-  const [preferredName, setPreferredName] = useState('');
-  const [timezone, setTimezone] = useState(defaultTimezone);
-  const [submitting, setSubmitting] = useState(false);
-  const [problem, setProblem] = useState<CoreProblem | null>(null);
-
-  async function createProfile(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (submitting) return;
-    setSubmitting(true);
-    setProblem(null);
-    try {
-      const response = await fetch('/api/core/profiles', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': `profile-create-${crypto.randomUUID()}` },
-        body: JSON.stringify({ preferredName: preferredName.trim(), timezone: timezone.trim() }),
-      });
-      const body: unknown = await response.json();
-      if (!response.ok) {
-        setProblem(readableProblem(body));
-        return;
-      }
-      onCreated();
-    } catch {
-      setProblem({ type: 'https://nirog.app/problems/web-network-unavailable', title: 'Profile could not be created', status: 502, code: 'WEB_NETWORK_UNAVAILABLE', correlationId: 'not-provided', detail: 'The Nirog Core connection could not be reached from this browser session.' });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return <form className="profile-onboarding" onSubmit={createProfile}><label>Profile name<input aria-label="Profile name" disabled={submitting} maxLength={160} onChange={(event) => setPreferredName(event.target.value)} required value={preferredName} /></label><label>Timezone<input aria-label="Timezone" disabled={submitting} maxLength={64} onChange={(event) => setTimezone(event.target.value)} required value={timezone} /></label>{problem && <p className="form-problem" role="alert">{problem.detail ?? problem.title}</p>}<button className="button button-primary" disabled={submitting} type="submit">{submitting ? 'Creating profile…' : 'Create profile'}</button></form>;
+  return <div className="workspace-grid"><section className="overview-card overview-primary" id="profiles"><div className="overview-card-top"><span className="icon-circle"><UsersRound size={20} /></span><span className="status-chip"><ShieldCheck size={14} /> Core verified</span></div><p className="eyebrow">Profile context</p><h2>{profileCount === 0 ? 'No patient profile is available yet.' : firstProfile?.preferredName ?? `${profileCount} profile${profileCount === 1 ? '' : 's'} available`}</h2><p>{profileCount === 0 ? 'Create or obtain access to a profile before adding prescription evidence.' : `${profileCount} profile${profileCount === 1 ? '' : 's'} are available to your signed-in account. Evidence and access stay within the selected profile.`}</p>{profileCount === 0 ? <ProfileCreationForm defaultTimezone={projection.preferences.timezone} onCreated={onProfileCreated} /> : <Link className="inline-link" href="/evidence">Open prescription workspace <ArrowRight size={16} /></Link>}</section><section className="overview-card"><p className="eyebrow">Care preferences</p><h2>{projection.preferences.timezone}</h2><p>{projection.preferences.notificationsEnabled ? 'Notifications are enabled for this account.' : 'Notifications are currently paused for this account.'}</p></section><section className="overview-card"><p className="eyebrow">Automatic intake</p><h2>Draft-ready</h2><p>Prescription evidence is processed automatically into editable medication drafts. A regimen exists only after an explicit authorized submission.</p><Link className="inline-link" href="/evidence">Follow prescription status <ArrowRight size={16} /></Link></section><section className="overview-card overview-wide"><div><p className="eyebrow">Connection details</p><h2>Your care record is ready when you are.</h2><p>Core identity, profile access, prescription processing, and caregiver visibility each stay within their own controlled boundary.</p></div><div className="connection-code"><span>SESSION</span><strong>{correlationId.slice(0, 8)}</strong></div></section></div>;
 }

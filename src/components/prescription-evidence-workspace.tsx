@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { ProfileCreationForm } from '@/components/profile-creation-form';
 import type { AccountProjection } from '@/lib/core-api';
 import {
   coreMessage,
@@ -357,6 +358,17 @@ export function PrescriptionEvidenceWorkspace() {
             <button className="button button-secondary" disabled={!data.profileId || !canCreateDocuments || view.phase === 'loading' || uploadBusy} onClick={() => void createPrescription()} type="button">New prescription</button>
           </div>
         </section>
+
+        {view.phase === 'ready' && !data.profileId && data.account && (
+          <section className="profile-onboarding-panel" aria-labelledby="create-profile-heading">
+            <div>
+              <p className="eyebrow">Start here</p>
+              <h2 id="create-profile-heading">Create your patient profile before adding a prescription.</h2>
+              <p>A profile establishes the Core-authorized care context for prescription containers, evidence, and any later review. Creating one does not add medication or make a clinical decision.</p>
+            </div>
+            <ProfileCreationForm defaultTimezone={data.account.preferences.timezone} onCreated={() => void refresh()} />
+          </section>
+        )}
 
         <section className="journey-grid">
           <article className="journey-card journey-upload">

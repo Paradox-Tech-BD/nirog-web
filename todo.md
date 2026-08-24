@@ -19,3 +19,15 @@
 - [x] Audit Core, dispatcher, and OCR Ops for Redis/BullMQ or alternative job-processing technology; add a protected status view only for the actual supported queue implementation.
 - [x] Add regression tests, perform desktop/mobile live verification, publish the corrected workflow, and synchronize the final changes to GitHub main.
 - [x] Correct the evidence review-status query so it follows the newest Core evidence item instead of a stale first list entry, without exposing OCR content or allowing clinical mutation.
+
+- [ ] Identify the active signed-in account and reproduce profile creation and evidence-upload failures for rinattok21@gmail.com.
+- [ ] Trace and repair account-specific profile creation and evidence upload behavior without weakening Core authorization or human review.
+- [ ] Validate the clinician-facing workflow with safe synthetic or controlled evidence, including no automatic clinical mutation.
+- [ ] Run regression, responsive, security, and deployment checks for the account-specific fixes.
+
+- [x] Add a visible signed-in profile-creation entry point with validation, recoverable errors, and Core-authoritative persistence.
+- [ ] Test profile creation independently before testing prescription creation and evidence upload for an account without existing profiles.
+
+- [x] Read referenced task QZ4GEh42fXMBGpxqgLSXu9 and map its completed position to the current repositories.
+- [ ] Continue the first unfinished requirement from the referenced task with tests and safety validation.
+- [x] Expose reusable Core-authoritative profile creation directly in the no-profile prescription workspace, rather than leaving users blocked on empty selectors.

@@ -3,7 +3,7 @@
    from external push, email, or SMS delivery that has not been configured. */
 'use client';
 
-import { AlertTriangle, BellRing, CheckCircle2, CircleDashed, ClipboardCheck, PackageCheck, RefreshCw, Send, TimerReset } from 'lucide-react';
+import { AlertTriangle, BellRing, CheckCircle2, CircleDashed, ClipboardCheck, MailCheck, PackageCheck, RefreshCw, Send, TimerReset } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import type { AccountProjection } from '@/lib/core-api';
@@ -13,6 +13,8 @@ import {
   readCore,
   type AdherenceStreakSummary,
   type DailyAdherenceSummary,
+  type ExternalDeliveryAttemptSummary,
+  type ExternalDeliveryStatusSummary,
   type InAppNotificationSummary,
   type InventoryMovementSummary,
   type InventorySummary,
@@ -20,15 +22,20 @@ import {
   type RegimenSummary,
   type ReminderOccurrenceSummary,
   type ReminderScheduleSummary,
+  type ProfileAccessContext,
 } from '@/lib/core-read-model';
+import { deliveryStatusDisplay } from '@/lib/delivery-status-display';
 
 type ReadState = {
   phase: 'loading' | 'ready';
   account: AccountProjection | null;
+  accessContext: ProfileAccessContext | null;
   regimens: RegimenSummary[];
   reminderSchedules: ReminderScheduleSummary[];
   occurrences: ReminderOccurrenceSummary[];
   notifications: InAppNotificationSummary[];
+  deliveryStatus: ExternalDeliveryStatusSummary | null;
+  deliveryAttempts: ExternalDeliveryAttemptSummary[];
   inventory: InventorySummary | null;
   movements: InventoryMovementSummary[];
   refillAlerts: RefillAlertSummary[];
@@ -39,7 +46,7 @@ type ReadState = {
 };
 
 const initialState: ReadState = {
-  phase: 'loading', account: null, regimens: [], reminderSchedules: [], occurrences: [], notifications: [], inventory: null, movements: [], refillAlerts: [], adherence: null, streak: null, refreshing: false,
+  phase: 'loading', account: null, accessContext: null, regimens: [], reminderSchedules: [], occurrences: [], notifications: [], deliveryStatus: null, deliveryAttempts: [], inventory: null, movements: [], refillAlerts: [], adherence: null, streak: null, refreshing: false,
 };
 
 function occurrenceWindow(): { from: string; to: string } {
@@ -101,12 +108,19 @@ export function CarePlanWorkspace() {
         return;
       }
       const regimens = await boundedCareRead<RegimenSummary[]>(`profiles/${resolvedProfileId}/medications`);
+      const accessContext = await boundedCareRead<ProfileAccessContext>(`profiles/${resolvedProfileId}/access-context`);
       const resolvedRegimenId = requestedRegimenId || (resolvedProfileId === priorSelection.profileId ? priorSelection.regimenId : '') || regimens[0]?.id || '';
       const selected = regimens.find((regimen) => regimen.id === resolvedRegimenId);
       const schedule = selected?.schedules[0]?.id || '';
       const window = occurrenceWindow();
       const timezone = account.profiles.find((profile) => profile.id === resolvedProfileId)?.timezone ?? 'UTC';
       const paths = carePlanReadPaths({ profileId: resolvedProfileId, regimenId: resolvedRegimenId, timezone, occurrenceFrom: window.from, occurrenceTo: window.to });
+      const deliveryReads = accessContext.accessKind === 'owner'
+        ? await Promise.allSettled([
+          boundedCareRead<ExternalDeliveryStatusSummary>(paths.deliveryStatus),
+          boundedCareRead<ExternalDeliveryAttemptSummary[]>(paths.deliveryAttempts),
+        ])
+        : [];
       const results = resolvedRegimenId ? await Promise.allSettled([
         boundedCareRead<ReminderScheduleSummary[]>(paths.reminderSchedules),
         boundedCareRead<ReminderOccurrenceSummary[]>(paths.occurrences),
@@ -119,14 +133,16 @@ export function CarePlanWorkspace() {
       ]) : [];
       if (loadVersion !== loadVersionRef.current) return;
       const value = <T,>(index: number, fallback: T): T => results[index]?.status === 'fulfilled' ? results[index].value as T : fallback;
+      const deliveryValue = <T,>(index: number, fallback: T): T => deliveryReads[index]?.status === 'fulfilled' ? deliveryReads[index].value as T : fallback;
       selectionRef.current = { profileId: resolvedProfileId, regimenId: resolvedRegimenId };
       setProfileId(resolvedProfileId);
       setRegimenId(resolvedRegimenId);
       setScheduleId((current) => priorSelection.regimenId === resolvedRegimenId ? current || schedule : schedule);
       setState({
-        phase: 'ready', account, regimens,
+        phase: 'ready', account, accessContext, regimens,
         reminderSchedules: value(0, []), occurrences: value(1, []), inventory: value(2, null), movements: value(3, []), refillAlerts: value(4, []),
         adherence: value<DailyAdherenceSummary[]>(5, [])[0] ?? null, streak: value(6, null), notifications: value(7, []),
+        deliveryStatus: deliveryValue(0, null), deliveryAttempts: deliveryValue(1, []),
         refreshing: false,
       });
     } catch (error) {
@@ -164,6 +180,8 @@ export function CarePlanWorkspace() {
   const activeOccurrence = state.occurrences.find((occurrence) => occurrence.state === 'delivered' || occurrence.state === 'snoozed');
   const openRefillAlert = state.refillAlerts.find((alert) => alert.status === 'open');
   const profileTimezone = state.account?.profiles.find((profile) => profile.id === profileId)?.timezone ?? 'UTC';
+  const deliveryStatus = useMemo(() => deliveryStatusDisplay(state.deliveryStatus, state.deliveryAttempts), [state.deliveryAttempts, state.deliveryStatus]);
+  const ownerContext = state.accessContext?.accessKind === 'owner';
 
   async function runAction(label: string, path: string, method: 'POST' | 'PUT', body?: Record<string, string | number>) {
     setBusy(label); setActionError(''); setActionMessage('');
@@ -198,6 +216,7 @@ export function CarePlanWorkspace() {
           <article className="plan-panel"><div className="plan-panel-heading"><div><p className="eyebrow">In-app delivery</p><h2>Reminder inbox</h2></div><BellRing size={20} /></div><p>These durable records are observable in the signed-in companion. They contain lifecycle identifiers and timestamps, not a prescription transcription or external provider receipt.</p><ul className="plan-list">{state.notifications.length === 0 ? <li><CircleDashed size={16} /> No delivered in-app reminder record is available yet.</li> : state.notifications.map((notification) => <li key={notification.id}><BellRing size={16} /><span><strong>{notification.kind === 'reminder_due' ? 'Reminder due' : notification.kind}</strong><small>{displayTime(notification.createdAt)}</small></span><small>{notification.status}</small></li>)}</ul></article>
           <article className="plan-panel"><div className="plan-panel-heading"><div><p className="eyebrow">Refill ledger</p><h2>Inventory movements</h2></div><PackageCheck size={20} /></div><p>Inventory is changed only by an explicit initialization, dose outcome, or refill command. The movement log exposes the aggregate ledger state.</p><div className="plan-form-row"><label>Quantity added<input inputMode="decimal" onChange={(event) => setRefillQuantity(event.target.value)} value={refillQuantity} /></label><button className="button button-secondary" disabled={Boolean(busy)} onClick={() => void runAction('Refill record', `profiles/${profileId}/regimens/${regimenId}/inventory/refills`, 'POST', { quantityAdded: refillQuantity })} type="button"><PackageCheck size={16} /> {busy === 'Refill record' ? 'Saving…' : 'Record refill'}</button></div><label className="visually-available">Dose time (optional)<input type="datetime-local" onChange={(event) => setDoseAt(event.target.value)} value={doseAt} /></label>{openRefillAlert && <div className="care-boundary"><AlertTriangle size={16} /><span>Refill threshold alert is open.</span><button className="button button-secondary" disabled={Boolean(busy)} onClick={() => void runAction('Refill alert acknowledgement', `profiles/${profileId}/regimens/${regimenId}/inventory/refill-alerts/${openRefillAlert.id}/acknowledge`, 'POST')} type="button">Acknowledge</button></div>}<ul className="plan-list">{state.movements.length === 0 ? <li><CircleDashed size={16} /> No inventory movement is available yet.</li> : state.movements.map((movement) => <li key={movement.id}><span><strong>{movement.kind.replace('_', ' ')}</strong><small>{displayTime(movement.occurredAt)}</small></span><small>{movement.quantityDelta}</small></li>)}</ul></article>
         </section>
+        {ownerContext && <section className="care-plan-detail-grid"><article className="plan-panel"><div className="plan-panel-heading"><div><p className="eyebrow">Owner delivery status</p><h2>{deliveryStatus.label}</h2></div><MailCheck size={20} /></div><p>{deliveryStatus.detail}</p><div className="care-boundary"><CircleDashed size={16} /><span>{deliveryStatus.attemptDetail}</span></div><p className="plan-panel-note">This owner-only panel uses configuration and provider-lifecycle metadata. It never displays a recipient, address, message, target, provider payload, or credential.</p></article></section>}
       </>}
     </>}
   </section></AppShell>;

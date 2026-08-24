@@ -21,6 +21,8 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medications`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/stream`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/delivery-status`)).toBe(true);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/delivery-attempts`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-schedules`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences/${occurrenceId}/snooze`)).toBe(true);
@@ -50,6 +52,8 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-grants/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-context/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/stream/extra`)).toBe(false);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/delivery-status/extra`)).toBe(false);
+    expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/delivery-registrations`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medication-drafts/${evidenceId}/submitted/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath('me')).toBe(false);
   });

@@ -110,6 +110,27 @@ export type InAppNotificationSummary = {
   createdAt: string;
 };
 
+/** Safe external-delivery projection: configuration health is not send evidence. */
+export type ExternalDeliveryStatusSummary = {
+  provider: 'disabled' | 'resend_email';
+  state: 'disabled' | 'ready';
+  channel?: 'email';
+};
+
+/** Safe provider-lifecycle metadata: never recipient, message, token, or credential data. */
+export type ExternalDeliveryAttemptSummary = {
+  id: string;
+  profileId: string;
+  regimenId: string;
+  reminderOccurrenceId: string;
+  channel: 'email';
+  provider: 'resend';
+  status: 'accepted' | 'failed' | 'delivered' | 'bounced';
+  attemptCount: number;
+  lastAttemptAt?: string;
+  createdAt: string;
+};
+
 export type InventorySummary = {
   id: string;
   trackingStatus: 'active' | 'paused';

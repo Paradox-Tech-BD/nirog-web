@@ -36,5 +36,7 @@ export function carePlanReadPaths(input: CarePlanReadPathInput) {
     streak: `${base}/adherence/streak`,
     notifications: `profiles/${input.profileId}/notifications`,
     notificationStream: `profiles/${input.profileId}/notifications/stream`,
+    deliveryStatus: `profiles/${input.profileId}/notifications/delivery-status`,
+    deliveryAttempts: `profiles/${input.profileId}/notifications/delivery-attempts`,
   } as const;
 }

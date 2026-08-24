@@ -31,3 +31,4 @@
 - [x] Read referenced task QZ4GEh42fXMBGpxqgLSXu9 and map its completed position to the current repositories.
 - [ ] Continue the first unfinished requirement from the referenced task with tests and safety validation.
 - [x] Expose reusable Core-authoritative profile creation directly in the no-profile prescription workspace, rather than leaving users blocked on empty selectors.
+- [x] Bound native browser-push permission and subscription waits so clinicians receive a recoverable error instead of an indefinite setup state.

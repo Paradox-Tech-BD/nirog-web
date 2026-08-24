@@ -9,6 +9,17 @@ export type BrowserPushSubscriptionPayload = {
 };
 
 const installationStorageKey = 'nirog.web-push-installation.v1';
+export const browserPushNativeOperationTimeoutMs = 15_000;
+
+export function awaitBrowserPushOperation<T>(operation: Promise<T>, timeoutMessage: string, timeoutMs = browserPushNativeOperationTimeoutMs): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = globalThis.setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+    operation.then(
+      (value) => { globalThis.clearTimeout(timeout); resolve(value); },
+      (error: unknown) => { globalThis.clearTimeout(timeout); reject(error); },
+    );
+  });
+}
 
 export function browserPushIsSupported(): boolean {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -38,13 +49,23 @@ function installationId(): string {
 
 export async function createBrowserPushSubscription(vapidPublicKey: string): Promise<BrowserPushSubscriptionPayload> {
   if (!browserPushIsSupported()) throw new Error('Browser push is not supported in this browser.');
-  const registration = await navigator.serviceWorker.register('/nirog-push-sw.js', { scope: '/' });
-  const permission = await Notification.requestPermission();
+  const registration = await awaitBrowserPushOperation(
+    navigator.serviceWorker.register('/nirog-push-sw.js', { scope: '/' }),
+    'The browser did not finish preparing push access. Try again.',
+  );
+  const permission = await awaitBrowserPushOperation(
+    Notification.requestPermission(),
+    'The browser notification permission request did not respond. Close any browser permission prompt and try again.',
+  );
   if (permission !== 'granted') throw new Error('Browser notification permission was not granted.');
-  const subscription = await registration.pushManager.getSubscription() ?? await registration.pushManager.subscribe({
+  const existingSubscription = await awaitBrowserPushOperation(
+    registration.pushManager.getSubscription(),
+    'The browser did not finish checking push access. Try again.',
+  );
+  const subscription = existingSubscription ?? await awaitBrowserPushOperation(registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: Uint8Array.from(vapidKeyToUint8Array(vapidPublicKey)).buffer as ArrayBuffer,
-  });
+  }), 'The browser did not finish creating push access. Try again.');
   const p256dh = arrayBufferToBase64Url(subscription.getKey('p256dh'));
   const auth = arrayBufferToBase64Url(subscription.getKey('auth'));
   if (!p256dh || !auth) throw new Error('The browser did not provide complete Web Push encryption material.');

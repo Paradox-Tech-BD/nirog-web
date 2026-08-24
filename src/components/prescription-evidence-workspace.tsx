@@ -37,6 +37,7 @@ import {
   type ProfileGrantSummary,
 } from '@/lib/core-read-model';
 import { formatEvidenceBytes, validateEvidenceFile } from '@/lib/evidence-upload';
+import { isEvidenceFileControlDisabled, shouldShowNoProfileOnboarding } from '@/lib/evidence-workspace-state';
 import { buildMedicationDraftCorrection } from '@/lib/medication-draft-payload';
 
 type DraftForm = {
@@ -328,7 +329,19 @@ export function PrescriptionEvidenceWorkspace() {
   const canCreateDocuments = hasOwnerOrPermission(data.accessContext, 'document.create');
   const canWriteRegimen = hasOwnerOrPermission(data.accessContext, 'regimen.write');
   const canManageShares = data.accessContext?.permissions.includes('share.manage') ?? false;
-  const fileControlDisabled = !data.prescriptionId || !canCreateDocuments || uploadBusy || view.phase === 'loading';
+  const fileControlDisabled = isEvidenceFileControlDisabled({
+    phase: view.phase,
+    profileId: data.profileId,
+    prescriptionId: data.prescriptionId,
+    canCreateDocuments,
+    uploadBusy,
+  });
+  const showNoProfileOnboarding = shouldShowNoProfileOnboarding({
+    phase: view.phase,
+    hasAccount: Boolean(data.account),
+    profileCount: data.account?.profiles.length ?? 0,
+    profileId: data.profileId,
+  });
   const activeGrants = data.grants.filter((grant) => grant.status === 'active');
   const latestEvidence = newestEvidence(data.evidence);
 
@@ -359,7 +372,7 @@ export function PrescriptionEvidenceWorkspace() {
           </div>
         </section>
 
-        {view.phase === 'ready' && !data.profileId && data.account && (
+        {showNoProfileOnboarding && data.account && (
           <section className="profile-onboarding-panel" aria-labelledby="create-profile-heading">
             <div>
               <p className="eyebrow">Start here</p>

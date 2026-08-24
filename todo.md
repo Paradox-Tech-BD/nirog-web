@@ -32,3 +32,9 @@
 - [ ] Continue the first unfinished requirement from the referenced task with tests and safety validation.
 - [x] Expose reusable Core-authoritative profile creation directly in the no-profile prescription workspace, rather than leaving users blocked on empty selectors.
 - [x] Bound native browser-push permission and subscription waits so clinicians receive a recoverable error instead of an indefinite setup state.
+- [x] Add explicit no-profile evidence-workspace regression coverage and validate the onboarding handoff without relying on a pre-seeded test profile.
+- [x] Define a protected operator-only status surface using real Core outbox and OCR Ops job lifecycle data, with no BullMQ/Bull Board substitution and no patient evidence content.
+- [ ] Implement the next approved safe operational increment with regression, responsive, authorization, and deployment validation.
+- [x] Add an isolated no-profile workspace regression that proves inline Core-authoritative profile onboarding appears before any prescription or evidence action is enabled.
+- [x] Review the existing Core and OCR Ops lifecycle contracts for a future operator-only status design that exposes identifiers and states only, never evidence or OCR text.
+- [ ] Add Core-owned `operations.read` authorization and an aggregate-only operator-status contract before creating any browser-visible operations view.

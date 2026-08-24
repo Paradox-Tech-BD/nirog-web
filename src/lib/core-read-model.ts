@@ -218,15 +218,23 @@ export async function readCore<T>(path: string, init?: RequestInit): Promise<T> 
     });
   }
 
+  if (!response.ok) {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new CoreReadError(unreadableProblem(response.status));
+    }
+    throw new CoreReadError(isCoreProblem(body) ? body : unreadableProblem(response.status));
+  }
+
+  if (response.status === 204) return undefined as T;
+
   let body: unknown;
   try {
     body = await response.json();
   } catch {
     throw new CoreReadError(unreadableProblem(response.status));
-  }
-
-  if (!response.ok) {
-    throw new CoreReadError(isCoreProblem(body) ? body : unreadableProblem(response.status));
   }
 
   return (body as CoreSuccess<T>).data;

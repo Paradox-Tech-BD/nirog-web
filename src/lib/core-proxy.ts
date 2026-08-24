@@ -23,7 +23,8 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
   const token = await getToken();
   if (!token) return problem(401, 'CORE_TOKEN_UNAVAILABLE', 'Nirog Core token unavailable', 'Refresh the Clerk session and try again.');
 
-  const headers = new Headers({ Authorization: `Bearer ${token}`, accept: 'application/json' });
+  const acceptsEventStream = request.headers.get('accept')?.includes('text/event-stream') === true;
+  const headers = new Headers({ Authorization: `Bearer ${token}`, accept: acceptsEventStream ? 'text/event-stream' : 'application/json' });
   const contentType = request.headers.get('content-type');
   const idempotencyKey = request.headers.get('idempotency-key');
   if (contentType) headers.set('content-type', contentType);
@@ -37,13 +38,18 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
       body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text(),
       cache: 'no-store',
     });
+    const responseHeaders = {
+      'content-type': response.headers.get('content-type') ?? 'application/json',
+      ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),
+      ...(acceptsEventStream ? { 'cache-control': 'no-cache, no-transform', 'x-accel-buffering': 'no' } : {}),
+    };
+    if (acceptsEventStream && response.body) {
+      return new NextResponse(response.body, { status: response.status, headers: responseHeaders });
+    }
     const responseBody = [204, 205, 304].includes(response.status) ? null : await response.text();
     return new NextResponse(responseBody, {
       status: response.status,
-      headers: {
-        'content-type': response.headers.get('content-type') ?? 'application/json',
-        ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),
-      },
+      headers: responseHeaders,
     });
   } catch {
     return problem(502, 'CORE_API_UNREACHABLE', 'Nirog Core is unreachable', 'The web companion could not contact the configured Core API.');

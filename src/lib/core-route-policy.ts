@@ -10,6 +10,7 @@ const allowedPath = [
   /^profiles\/[0-9a-f-]{36}\/regimens$/,
   /^profiles\/[0-9a-f-]{36}\/medications$/,
   /^profiles\/[0-9a-f-]{36}\/notifications$/,
+  /^profiles\/[0-9a-f-]{36}\/notifications\/stream$/,
   /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/reminder-schedules$/,
   /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/reminder-occurrences$/,
   /^profiles\/[0-9a-f-]{36}\/regimens\/[0-9a-f-]{36}\/reminder-occurrences\/[0-9a-f-]{36}\/(?:snooze|acknowledge)$/,

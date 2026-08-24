@@ -45,4 +45,28 @@ describe('proxyAuthorizedCoreRequest', () => {
       expect.objectContaining({ method: 'GET' }),
     );
   });
+
+  it('forwards an authorized notification stream without buffering the event body', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const fetchMock = vi.fn(async () => new Response('event: notification.ready\ndata: {}\n\n', {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream; charset=utf-8' },
+    }));
+    global.fetch = fetchMock as typeof fetch;
+    const request = new Request('https://www.nirog.me/api/core/profiles/profile/notifications/stream', {
+      headers: { accept: 'text/event-stream' },
+    });
+
+    const response = await proxyAuthorizedCoreRequest(request, 'profiles/profile/notifications/stream');
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    expect(await response.text()).toContain('notification.ready');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://core.example/api/v1/profiles/profile/notifications/stream',
+      expect.objectContaining({ method: 'GET' }),
+    );
+    const init = fetchMock.mock.calls.at(0)?.at(1) as RequestInit | undefined;
+    expect((init?.headers as Headers).get('accept')).toBe('text/event-stream');
+  });
 });

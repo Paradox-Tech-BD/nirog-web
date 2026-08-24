@@ -35,5 +35,6 @@ export function carePlanReadPaths(input: CarePlanReadPathInput) {
     dailyAdherence: `${base}/adherence/daily?fromDate=${localDate}&toDate=${localDate}&timezone=${encodeURIComponent(input.timezone)}`,
     streak: `${base}/adherence/streak`,
     notifications: `profiles/${input.profileId}/notifications`,
+    notificationStream: `profiles/${input.profileId}/notifications/stream`,
   } as const;
 }

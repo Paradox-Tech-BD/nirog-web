@@ -18,5 +18,6 @@ describe('carePlanReadPaths', () => {
     expect(paths.occurrences).not.toContain('limit=');
     expect(paths.movements).toBe('profiles/profile/regimens/regimen/inventory/movements');
     expect(paths.dailyAdherence).toContain('fromDate=2026-08-24');
+    expect(paths.notificationStream).toBe('profiles/profile/notifications/stream');
   });
 });

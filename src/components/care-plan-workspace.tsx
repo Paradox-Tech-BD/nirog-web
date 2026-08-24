@@ -83,6 +83,7 @@ export function CarePlanWorkspace() {
   const [busy, setBusy] = useState('');
   const selectionRef = useRef({ profileId: '', regimenId: '' });
   const loadVersionRef = useRef(0);
+  const streamRefreshTimerRef = useRef<number | undefined>(undefined);
 
   const load = useCallback(async (requestedProfileId = '', requestedRegimenId = '') => {
     const loadVersion = ++loadVersionRef.current;
@@ -135,6 +136,29 @@ export function CarePlanWorkspace() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!profileId || typeof EventSource === 'undefined') return;
+    const stream = new EventSource(`/api/core/profiles/${profileId}/notifications/stream`);
+    const refreshDurableInbox = () => {
+      if (streamRefreshTimerRef.current !== undefined) return;
+      streamRefreshTimerRef.current = window.setTimeout(() => {
+        streamRefreshTimerRef.current = undefined;
+        void load(profileId, selectionRef.current.regimenId);
+      }, 250);
+    };
+    stream.addEventListener('notification.refresh', refreshDurableInbox);
+    stream.addEventListener('notification.unavailable', refreshDurableInbox);
+    return () => {
+      stream.removeEventListener('notification.refresh', refreshDurableInbox);
+      stream.removeEventListener('notification.unavailable', refreshDurableInbox);
+      stream.close();
+      if (streamRefreshTimerRef.current !== undefined) {
+        window.clearTimeout(streamRefreshTimerRef.current);
+        streamRefreshTimerRef.current = undefined;
+      }
+    };
+  }, [load, profileId]);
 
   const selectedRegimen = useMemo(() => state.regimens.find((regimen) => regimen.id === regimenId) ?? null, [state.regimens, regimenId]);
   const activeOccurrence = state.occurrences.find((occurrence) => occurrence.state === 'delivered' || occurrence.state === 'snoozed');

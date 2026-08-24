@@ -32,12 +32,19 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
 
   try {
     const query = new URL(request.url).search;
-    const response = await fetch(`${coreApiRoot(configuredApiBase)}/${path}${query}`, {
+    const apiRoot = coreApiRoot(configuredApiBase);
+    const response = await fetch(`${apiRoot}/${path}${query}`, {
       method: request.method,
       headers,
       body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text(),
       cache: 'no-store',
     });
+    if (path === 'delivery-registrations/web-push/config') {
+      console.info('Browser push capability proxy upstream evaluated', {
+        coreHost: new URL(apiRoot).host,
+        upstreamStatus: response.status,
+      });
+    }
     const responseHeaders = {
       'content-type': response.headers.get('content-type') ?? 'application/json',
       ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),

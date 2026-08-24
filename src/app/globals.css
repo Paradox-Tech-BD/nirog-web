@@ -278,6 +278,12 @@ a { color:inherit; text-decoration:none; }
 .care-plan-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; margin-top:1.15rem; background:var(--path-line); border:1px solid var(--path-line); }
 .care-plan-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; margin-top:1.15rem; background:var(--path-line); border:1px solid var(--path-line); }
 .policy-page { padding:2.25rem 0 5rem; }
+.push-setup-card { margin-top:1.15rem; padding:clamp(1.2rem,3vw,2rem); border:1px solid var(--path-line); background:linear-gradient(135deg,#f7fbf7 0%,#e8f4ed 100%); }
+.push-setup-card > p { max-width:48rem; margin:.35rem 0 0; color:#647579; font-size:.8rem; line-height:1.65; }
+.push-setup-card > .button { margin-top:1rem; }
+.push-setup-state { display:flex; align-items:flex-start; gap:.48rem; margin-top:1rem; color:#527168; font-size:.74rem; line-height:1.55; }
+.push-setup-state svg { flex:0 0 auto; margin-top:.05rem; }
+.push-setup-state-ready { color:#185246; }
 .policy-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(18rem,.65fr); gap:1px; margin-top:1.15rem; background:var(--path-line); border:1px solid var(--path-line); }
 .policy-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin-top:1.2rem; }
 .policy-form-grid label { display:grid; gap:.35rem; color:#5b7074; font-family:var(--font-ibm-plex-mono),monospace; font-size:.6rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }

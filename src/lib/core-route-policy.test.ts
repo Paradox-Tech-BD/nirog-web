@@ -25,6 +25,9 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/delivery-attempts`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notification-policies`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notification-policies/${grantId}`)).toBe(true);
+    expect(isAllowedCoreEvidencePath('delivery-registrations/web-push/config')).toBe(true);
+    expect(isAllowedCoreEvidencePath('delivery-registrations')).toBe(true);
+    expect(isAllowedCoreEvidencePath(`delivery-registrations/${grantId}`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-schedules`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/regimens/${regimenId}/reminder-occurrences/${occurrenceId}/snooze`)).toBe(true);
@@ -57,6 +60,7 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/delivery-status/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notifications/delivery-registrations`)).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/notification-policies/${grantId}/extra`)).toBe(false);
+    expect(isAllowedCoreEvidencePath('delivery-registrations/web-push/private-key')).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medication-drafts/${evidenceId}/submitted/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath('me')).toBe(false);
   });

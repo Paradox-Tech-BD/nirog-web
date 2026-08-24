@@ -8,12 +8,14 @@ describe('patient-facing navigation policy', () => {
       { href: '/evidence', label: 'Prescription evidence' },
       { href: '/care-plan', label: 'Care plan' },
       { href: '/care-circle', label: 'Care circle' },
+      { href: '/notification-policies', label: 'Notification policies' },
     ]);
     expect(isNavigationActive('/', '/')).toBe(true);
     expect(isNavigationActive('/evidence', '/evidence')).toBe(true);
     expect(isNavigationActive('/evidence/review', '/evidence')).toBe(true);
     expect(isNavigationActive('/care-circle', '/care-circle')).toBe(true);
     expect(isNavigationActive('/care-plan', '/care-plan')).toBe(true);
+    expect(isNavigationActive('/notification-policies', '/notification-policies')).toBe(true);
     expect(isNavigationActive('/evidence', '/')).toBe(false);
   });
 

@@ -131,6 +131,22 @@ export type ExternalDeliveryAttemptSummary = {
   createdAt: string;
 };
 
+/** Safe owner-managed notification intent; contact channels and delivery targets stay in Core. */
+export type NotificationPolicySummary = {
+  id: string;
+  profileId: string;
+  recipientAccountId: string;
+  recipientKind: 'owner' | 'delegated';
+  eventClass: 'reminder_due' | 'refill_alert';
+  channel: 'in_app' | 'email' | 'push' | 'sms';
+  timezone: string;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  status: 'active' | 'withdrawn';
+  effectiveAt: string;
+  withdrawnAt?: string;
+};
+
 export type InventorySummary = {
   id: string;
   trackingStatus: 'active' | 'paused';

@@ -74,3 +74,4 @@
 - [x] Consolidate duplicated server request-body byte-reading logic behind one regression-tested bounded helper while preserving the distinct Core relay and confirmed-only OCR receipt error contracts.
 - [x] Restrict relay response media types to documented JSON/problem contracts and the notification event-stream contract so unsafe downstream content cannot be served under the Nirog Web origin.
 - [x] Restrict browser-to-Core and confirmed-only OCR receipt mutation relays to documented JSON request media types before downstream forwarding.
+- [x] Add deterministic GitHub Actions validation for Nirog Web test, lint, TypeScript, and production-build checks on future code changes.

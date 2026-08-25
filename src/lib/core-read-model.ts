@@ -250,7 +250,13 @@ export async function readCore<T>(path: string, init?: RequestInit): Promise<T> 
 }
 
 export function coreMessage(error: unknown, fallback: string): string {
-  if (error instanceof CoreReadError) return error.problem.detail ?? error.problem.title;
+  if (error instanceof CoreReadError) {
+    // Core deliberately makes profile-capability denials non-disclosing. Do not
+    // surface a response detail or reinterpret this generic denial as proof of
+    // a profile lifecycle state; the caller's contextual fallback is safer.
+    if (error.problem.status === 403 && error.problem.code === 'ACCESS_DENIED') return fallback;
+    return error.problem.detail ?? error.problem.title;
+  }
   return fallback;
 }
 

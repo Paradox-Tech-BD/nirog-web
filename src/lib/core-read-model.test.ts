@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { readCore } from './core-read-model';
+import { CoreReadError, coreMessage, readCore } from './core-read-model';
 
 describe('readCore response boundary', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -16,5 +16,34 @@ describe('readCore response boundary', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ data: { status: 'active' } })));
 
     await expect(readCore<{ status: string }>('example')).resolves.toEqual({ status: 'active' });
+  });
+});
+
+describe('coreMessage', () => {
+  it('uses the caller context for Core’s generic non-disclosing access denial', () => {
+    const fallback = 'Care-plan data could not be loaded. No care record was changed.';
+    const error = new CoreReadError({
+      type: 'https://nirog.app/problems/access-denied',
+      title: 'Access denied',
+      status: 403,
+      code: 'ACCESS_DENIED',
+      correlationId: 'not-provided',
+      detail: 'This detail must not be shown in a generic denial surface.',
+    });
+
+    expect(coreMessage(error, fallback)).toBe(fallback);
+  });
+
+  it('preserves Core’s safe message for non-denial problems', () => {
+    const error = new CoreReadError({
+      type: 'https://nirog.app/problems/validation-failed',
+      title: 'Request validation failed',
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      correlationId: 'not-provided',
+      detail: 'The request does not satisfy the declared API contract.',
+    });
+
+    expect(coreMessage(error, 'Fallback')).toBe('The request does not satisfy the declared API contract.');
   });
 });

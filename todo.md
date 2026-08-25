@@ -29,7 +29,7 @@
 - [ ] Test profile creation independently before testing prescription creation and evidence upload for an account without existing profiles.
 
 - [x] Read referenced task QZ4GEh42fXMBGpxqgLSXu9 and map its completed position to the current repositories.
-- [ ] Continue the first unfinished requirement from the referenced task with tests and safety validation.
+- [x] Continue the first unfinished requirement from the referenced task with tests and safety validation: the controlled synthetic delivery-registration create returned success and was immediately revoked, with no provider delivery or clinical data access.
 - [x] Expose reusable Core-authoritative profile creation directly in the no-profile prescription workspace, rather than leaving users blocked on empty selectors.
 - [x] Bound native browser-push permission and subscription waits so clinicians receive a recoverable error instead of an indefinite setup state.
 - [x] Add explicit no-profile evidence-workspace regression coverage and validate the onboarding handoff without relying on a pre-seeded test profile.

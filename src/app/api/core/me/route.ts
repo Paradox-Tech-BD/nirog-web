@@ -2,6 +2,8 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
+const privateNoStore = 'private, no-store';
+
 function problem(status: number, code: string, title: string, detail: string) {
   return NextResponse.json(
     {
@@ -11,7 +13,7 @@ function problem(status: number, code: string, title: string, detail: string) {
       code,
       detail,
     },
-    { status, headers: { 'content-type': 'application/problem+json' } },
+    { status, headers: { 'content-type': 'application/problem+json', 'cache-control': privateNoStore } },
   );
 }
 
@@ -50,6 +52,7 @@ export async function GET() {
       status: response.status,
       headers: {
         'content-type': response.headers.get('content-type') ?? 'application/json',
+        'cache-control': privateNoStore,
         ...(response.headers.get('x-correlation-id')
           ? { 'x-correlation-id': response.headers.get('x-correlation-id')! }
           : {}),

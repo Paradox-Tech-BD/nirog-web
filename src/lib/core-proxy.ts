@@ -2,7 +2,7 @@ import 'server-only';
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { fetchWithBoundedTimeout } from './downstream-fetch';
+import { fetchWithBoundedTimeout, readBoundedDownstreamText } from './downstream-fetch';
 
 const privateNoStore = 'private, no-store';
 export const MAX_CORE_RELAY_REQUEST_BODY_BYTES = 64 * 1024;
@@ -94,7 +94,11 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
     if (acceptsEventStream && response.body) {
       return new NextResponse(response.body, { status: response.status, headers: responseHeaders });
     }
-    const responseBody = [204, 205, 304].includes(response.status) ? null : await response.text();
+    const noContentResponse = [204, 205, 304].includes(response.status);
+    const responseBody = noContentResponse ? null : await readBoundedDownstreamText(response);
+    if (!noContentResponse && responseBody === null) {
+      return problem(502, 'CORE_RESPONSE_TOO_LARGE', 'Core response is too large', 'The Core response exceeded the browser relay safety limit.');
+    }
     return new NextResponse(responseBody, {
       status: response.status,
       headers: responseHeaders,

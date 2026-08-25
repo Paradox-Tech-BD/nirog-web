@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-import { fetchWithBoundedTimeout } from './downstream-fetch';
+import {
+  MAX_BUFFERED_DOWNSTREAM_RESPONSE_BYTES,
+  fetchWithBoundedTimeout,
+  readBoundedDownstreamText,
+} from './downstream-fetch';
 
 describe('fetchWithBoundedTimeout', () => {
   const originalFetch = global.fetch;
@@ -43,5 +47,22 @@ describe('fetchWithBoundedTimeout', () => {
       'https://core.example/me',
       expect.objectContaining({ cache: 'no-store', method: 'GET', signal: expect.any(AbortSignal) }),
     );
+  });
+
+  it('preserves bounded downstream response text', async () => {
+    const body = JSON.stringify({ data: [] });
+
+    expect(await readBoundedDownstreamText(new Response(body))).toBe(body);
+  });
+
+  it('rejects a streamed downstream response that exceeds the configured byte cap', async () => {
+    const response = new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('x'.repeat(MAX_BUFFERED_DOWNSTREAM_RESPONSE_BYTES + 1)));
+        controller.close();
+      },
+    }));
+
+    expect(await readBoundedDownstreamText(response)).toBeNull();
   });
 });

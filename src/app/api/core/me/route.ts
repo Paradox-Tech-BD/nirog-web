@@ -1,7 +1,7 @@
 // Clinical Ledger design: this route forwards Clerk's session-bound token; Core relies on its sid, aud, and azp claims.
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { fetchWithBoundedTimeout } from '@/lib/downstream-fetch';
+import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
 
 const privateNoStore = 'private, no-store';
 
@@ -48,7 +48,10 @@ export async function GET() {
       headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
       cache: 'no-store',
     });
-    const body = await response.text();
+    const body = await readBoundedDownstreamText(response);
+    if (body === null) {
+      return problem(502, 'CORE_RESPONSE_TOO_LARGE', 'Core response is too large', 'The Core response exceeded the browser relay safety limit.');
+    }
     return new NextResponse(body, {
       status: response.status,
       headers: {

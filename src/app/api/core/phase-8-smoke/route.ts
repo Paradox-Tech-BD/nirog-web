@@ -2,7 +2,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { isCrossOriginMutation } from '@/lib/browser-mutation';
-import { fetchWithBoundedTimeout } from '@/lib/downstream-fetch';
+import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
 import { coreApiRoot } from '../me/route';
 
 const privateNoStore = 'private, no-store';
@@ -46,7 +46,13 @@ async function sessionContext() {
 }
 
 async function readJson(response: Response): Promise<unknown> {
-  return response.json().catch(() => null);
+  const text = await readBoundedDownstreamText(response);
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 function coreHeaders(token: string, idempotencyKey?: string): HeadersInit {
@@ -87,7 +93,7 @@ export async function POST(request: NextRequest) {
     cache: 'no-store',
   });
   if (!upload.ok) {
-    const uploadBody = await upload.text();
+    const uploadBody = await readBoundedDownstreamText(upload) ?? '';
     const providerCode = /<Code>([^<]+)<\/Code>/.exec(uploadBody)?.[1];
     const providerDetail = providerCode ? ` R2 returned ${upload.status} (${providerCode}).` : ` R2 returned ${upload.status}.`;
     return problem(502, 'EVIDENCE_OBJECT_UPLOAD_FAILED', 'Synthetic evidence upload failed', `The presigned R2 upload did not complete.${providerDetail}`);
@@ -133,7 +139,10 @@ export async function GET(request: NextRequest) {
     `${context.apiBase}/profiles/${smokeProfileId}/evidence/${evidenceId}/ocr-extractions`,
     { headers: coreHeaders(context.token), cache: 'no-store' },
   );
-  const body = await response.text();
+  const body = await readBoundedDownstreamText(response);
+  if (body === null) {
+    return problem(502, 'CORE_RESPONSE_TOO_LARGE', 'Core response is too large', 'The Core response exceeded the browser relay safety limit.');
+  }
   return new NextResponse(body, {
     status: response.status,
     headers: {

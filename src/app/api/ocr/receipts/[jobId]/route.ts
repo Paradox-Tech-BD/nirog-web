@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { isCrossOriginMutation } from '@/lib/browser-mutation';
-import { fetchWithBoundedTimeout } from '@/lib/downstream-fetch';
+import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
 import { ocrOpsReceiptEndpoint, parseConfirmedReceiptRelayInput } from '@/lib/ocr-receipt-relay';
 
 const privateNoStore = 'private, no-store';
@@ -81,7 +81,11 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
       body: JSON.stringify(input),
       cache: 'no-store',
     });
-    return new NextResponse(await response.text(), {
+    const responseBody = await readBoundedDownstreamText(response);
+    if (responseBody === null) {
+      return problem(502, 'OCR_OPS_RESPONSE_TOO_LARGE', 'OCR operations response is too large', 'The OCR operations response exceeded the browser relay safety limit.');
+    }
+    return new NextResponse(responseBody, {
       status: response.status,
       headers: {
         'content-type': response.headers.get('content-type') ?? 'application/json',

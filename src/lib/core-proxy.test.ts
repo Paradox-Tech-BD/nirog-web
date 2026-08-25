@@ -12,6 +12,7 @@ vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
 vi.mock('server-only', () => ({}));
 
 import { MAX_CORE_RELAY_REQUEST_BODY_BYTES, proxyAuthorizedCoreRequest } from './core-proxy';
+import { MAX_BUFFERED_DOWNSTREAM_RESPONSE_BYTES } from './downstream-fetch';
 
 describe('proxyAuthorizedCoreRequest', () => {
   const originalCoreUrl = process.env.NIROG_CORE_API_URL;
@@ -125,5 +126,23 @@ describe('proxyAuthorizedCoreRequest', () => {
     expect(response.headers.get('cache-control')).toBe('private, no-store');
     expect(await response.json()).toMatchObject({ code: 'CORE_REQUEST_TOO_LARGE' });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an oversized buffered Core response before relaying it to the browser', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const fetchMock = vi.fn(async () => new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('x'.repeat(MAX_BUFFERED_DOWNSTREAM_RESPONSE_BYTES + 1)));
+        controller.close();
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    global.fetch = fetchMock as typeof fetch;
+    const request = new Request('https://www.nirog.me/api/core/profiles');
+
+    const response = await proxyAuthorizedCoreRequest(request, 'profiles');
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(await response.json()).toMatchObject({ code: 'CORE_RESPONSE_TOO_LARGE' });
   });
 });

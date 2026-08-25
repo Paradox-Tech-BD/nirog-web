@@ -9,7 +9,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
-vi.mock('@/lib/downstream-fetch', () => ({ fetchWithBoundedTimeout: (...args: Parameters<typeof fetch>) => fetch(...args) }));
+vi.mock('@/lib/downstream-fetch', () => ({
+  fetchWithBoundedTimeout: (...args: Parameters<typeof fetch>) => fetch(...args),
+  readBoundedDownstreamText: (response: Response) => response.text(),
+}));
 
 import { GET } from './route';
 

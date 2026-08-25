@@ -75,3 +75,4 @@
 - [x] Restrict relay response media types to documented JSON/problem contracts and the notification event-stream contract so unsafe downstream content cannot be served under the Nirog Web origin.
 - [x] Restrict browser-to-Core and confirmed-only OCR receipt mutation relays to documented JSON request media types before downstream forwarding.
 - [x] Add deterministic GitHub Actions validation for Nirog Web test, lint, TypeScript, and production-build checks on future code changes.
+- [x] Repair the clean-checkout TypeScript failure exposed by CI so root layout props do not depend on generated build types before the build step runs.

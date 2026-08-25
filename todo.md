@@ -78,3 +78,4 @@
 - [x] Repair the clean-checkout TypeScript failure exposed by CI so root layout props do not depend on generated build types before the build step runs.
 - [x] Add a deterministic CodeQL workflow for JavaScript and TypeScript security analysis on Nirog Web pushes and pull requests.
 - [x] Add a regression guard that blocks sensitive server configuration and downstream bearer authorization patterns from browser-rendered Web source files.
+- [x] Reject explicit cross-site browser mutation metadata at Web relay boundaries while retaining compatible same-origin and non-browser clients.

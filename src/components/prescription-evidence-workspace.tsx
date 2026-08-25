@@ -38,7 +38,7 @@ import {
 } from '@/lib/core-read-model';
 import { formatEvidenceBytes, validateEvidenceFile } from '@/lib/evidence-upload';
 import { isEvidenceFileControlDisabled, shouldShowNoProfileOnboarding } from '@/lib/evidence-workspace-state';
-import { buildMedicationDraftCorrection } from '@/lib/medication-draft-payload';
+import { buildMedicationDraftCorrection, validateMedicationDraftConfirmation } from '@/lib/medication-draft-payload';
 
 type DraftForm = {
   medicationName: string;
@@ -280,8 +280,20 @@ export function PrescriptionEvidenceWorkspace() {
     if (!form || !data.profileId || !hasOwnerOrPermission(data.accessContext, 'regimen.write')) return;
     const scheduleTimes = form.scheduleTimes.split(',').map((time) => time.trim()).filter(Boolean);
     const intervalDays = Number(form.intervalDays);
-    if (!form.medicationName || !form.doseQuantity || !form.doseUnitCode || !form.routeCode || !form.frequencyText || !scheduleTimes.length || !Number.isInteger(intervalDays)) {
-      setDraftAction({ draftId: draft.id, status: 'error', message: 'Complete the medication, dose, route, frequency, and at least one HH:MM schedule time.' });
+    const timezone = data.account?.profiles.find((profile) => profile.id === data.profileId)?.timezone ?? 'UTC';
+    const validationError = validateMedicationDraftConfirmation({
+      medicationName: form.medicationName,
+      doseQuantity: form.doseQuantity,
+      doseUnitCode: form.doseUnitCode,
+      routeCode: form.routeCode,
+      frequencyText: form.frequencyText,
+      scheduleTimes,
+      intervalDays,
+      startedOn: form.startedOn,
+      timezone,
+    });
+    if (validationError) {
+      setDraftAction({ draftId: draft.id, status: 'error', message: validationError });
       return;
     }
     try {
@@ -299,7 +311,6 @@ export function PrescriptionEvidenceWorkspace() {
           intervalDays,
         })),
       });
-      const timezone = data.account?.profiles.find((profile) => profile.id === data.profileId)?.timezone ?? 'UTC';
       const regimen = await readCore<{ id: string }>(`profiles/${data.profileId}/regimens`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey() },

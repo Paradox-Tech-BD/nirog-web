@@ -45,3 +45,4 @@
 - [x] Add regression tests proving the web bridge forwards caller identity, rejects unavailable/forbidden responses safely, and cannot expose patient, evidence, OCR, medication, payload, or job-identifier data.
 - [x] Diagnose the deployed sandbox test session’s evidence-workspace refresh stall without creating, modifying, or inspecting patient evidence; the same-origin account bridge returns successfully and a read-only refresh reaches the authorized ready state without client-console errors.
 - [x] Make no-profile profile creation resilient to missing or invalid account timezone preferences, while validating the IANA timezone client-side and preserving Core-authoritative profile creation.
+- [x] Match medication-draft confirmation client validation to Core’s regimen schedule-time and interval constraints before any confirmation request is sent.

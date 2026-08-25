@@ -22,7 +22,7 @@
 
 - [ ] Identify the active signed-in account and reproduce profile creation and evidence-upload failures for rinattok21@gmail.com.
 - [ ] Trace and repair account-specific profile creation and evidence upload behavior without weakening Core authorization or human review.
-- [ ] Validate the clinician-facing workflow with safe synthetic or controlled evidence, including no automatic clinical mutation.
+- [x] Validate the clinician-facing workflow with safe controlled evidence: Core dispatch, temporary lease, server-side extraction, deterministic match, attributed human confirmation, one identifier-only receipt, duplicate rejection, and a read-only Core audit confirming no automatic clinical mutation.
 - [ ] Run regression, responsive, security, and deployment checks for the account-specific fixes.
 
 - [x] Add a visible signed-in profile-creation entry point with validation, recoverable errors, and Core-authoritative persistence.

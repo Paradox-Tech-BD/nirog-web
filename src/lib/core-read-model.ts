@@ -215,7 +215,7 @@ function unreadableProblem(status = 502): CoreProblem {
 export async function readCore<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/core/${path}`, { cache: 'no-store', ...init });
+    response = await fetch(`/api/core/${path}`, { ...init, cache: 'no-store' });
   } catch {
     throw new CoreReadError({
       type: 'https://nirog.app/problems/web-network-unavailable',

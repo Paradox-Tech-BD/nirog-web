@@ -12,6 +12,14 @@ describe('readCore response boundary', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/core/profiles/example/notification-policies/recipient', expect.objectContaining({ method: 'DELETE', cache: 'no-store' }));
   });
 
+  it('does not allow callers to override the protected no-store cache policy', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ data: { status: 'active' }, meta: { correlationId: 'not-provided' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(readCore<{ status: string }>('example', { cache: 'force-cache' })).resolves.toEqual({ status: 'active' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/core/example', expect.objectContaining({ cache: 'no-store' }));
+  });
+
   it('continues to unwrap Core success envelopes for JSON reads', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ data: { status: 'active' }, meta: { correlationId: 'not-provided' } })));
 

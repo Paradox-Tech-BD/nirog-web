@@ -53,3 +53,4 @@
 - [x] Reject malformed successful Core responses at the same-origin read boundary so UI code never treats missing envelope data as a valid care projection.
 - [x] Reject malformed Core problem responses at the same-origin read boundary so failure details are presented only when they conform to the documented problem contract.
 - [x] Reject successful Core envelopes with blank correlation metadata so untraceable care projections cannot advance UI state.
+- [x] Enforce no-store cache policy for every same-origin Core request so callers cannot opt into browser caching of protected care responses.

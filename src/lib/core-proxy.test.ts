@@ -93,6 +93,35 @@ describe('proxyAuthorizedCoreRequest', () => {
     expect((init?.headers as Headers).get('authorization')).toBe('Bearer test-token');
   });
 
+  it('preserves allowlisted Core rate-limit metadata without relaying arbitrary downstream headers', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ code: 'RATE_LIMIT_EXCEEDED' }), {
+      status: 429,
+      headers: {
+        'content-type': 'application/problem+json',
+        'retry-after': '30',
+        'ratelimit-limit': '100',
+        'ratelimit-remaining': '0',
+        'ratelimit-reset': '30',
+        'x-untrusted-core-header': 'must-not-be-relayed',
+      },
+    }));
+    global.fetch = fetchMock as typeof fetch;
+
+    const response = await proxyAuthorizedCoreRequest(
+      new Request('https://www.nirog.me/api/core/profiles'),
+      'profiles',
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('retry-after')).toBe('30');
+    expect(response.headers.get('ratelimit-limit')).toBe('100');
+    expect(response.headers.get('ratelimit-remaining')).toBe('0');
+    expect(response.headers.get('ratelimit-reset')).toBe('30');
+    expect(response.headers.get('x-untrusted-core-header')).toBeNull();
+  });
+
   it('forwards a bounded mutation body without changing its bytes', async () => {
     process.env.NIROG_CORE_API_URL = 'https://core.example';
     const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));

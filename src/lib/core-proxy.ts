@@ -8,6 +8,21 @@ import { isRelayEventStreamResponse, isRelayJsonResponse } from './relay-respons
 
 const privateNoStore = 'private, no-store';
 export const MAX_CORE_RELAY_REQUEST_BODY_BYTES = 64 * 1024;
+const rateLimitResponseHeaderNames = [
+  'retry-after',
+  'ratelimit-limit',
+  'ratelimit-remaining',
+  'ratelimit-reset',
+] as const;
+
+function rateLimitResponseHeaders(response: Response): Record<string, string> {
+  return Object.fromEntries(
+    rateLimitResponseHeaderNames.flatMap((name) => {
+      const value = response.headers.get(name);
+      return value ? [[name, value]] : [];
+    }),
+  );
+}
 
 function problem(status: number, code: string, title: string, detail: string) {
   return NextResponse.json(
@@ -72,6 +87,7 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
     const responseHeaders = {
       'content-type': response.headers.get('content-type') ?? 'application/json',
       ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),
+      ...rateLimitResponseHeaders(response),
       'cache-control': isEventStream ? `${privateNoStore}, no-cache, no-transform` : privateNoStore,
       ...(isEventStream ? { 'x-accel-buffering': 'no' } : {}),
     };

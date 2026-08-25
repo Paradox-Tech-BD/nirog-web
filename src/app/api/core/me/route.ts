@@ -1,6 +1,7 @@
 // Clinical Ledger design: this route forwards Clerk's session-bound token; Core relies on its sid, aud, and azp claims.
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { fetchWithBoundedTimeout } from '@/lib/downstream-fetch';
 
 const privateNoStore = 'private, no-store';
 
@@ -43,7 +44,7 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(`${apiBase}/me`, {
+    const response = await fetchWithBoundedTimeout(`${apiBase}/me`, {
       headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
       cache: 'no-store',
     });

@@ -2,6 +2,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { isCrossOriginMutation } from '@/lib/browser-mutation';
+import { fetchWithBoundedTimeout } from '@/lib/downstream-fetch';
 import { coreApiRoot } from '../me/route';
 
 const privateNoStore = 'private, no-store';
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
   const context = await sessionContext();
   if ('error' in context) return context.error;
 
-  const authorization = await fetch(
+  const authorization = await fetchWithBoundedTimeout(
     `${context.apiBase}/profiles/${smokeProfileId}/prescriptions/${smokePrescriptionId}/evidence/uploads`,
     {
       method: 'POST',
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
     return problem(authorization.status || 502, authorizationBody?.code ?? 'EVIDENCE_UPLOAD_AUTHORIZATION_FAILED', 'Synthetic evidence upload was not authorized', 'The authenticated Core request did not return a usable evidence upload authorization.');
   }
 
-  const upload = await fetch(uploadUrl, {
+  const upload = await fetchWithBoundedTimeout(uploadUrl, {
     method: 'PUT',
     headers: { 'content-type': 'image/png' },
     body: syntheticPng,
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     return problem(502, 'EVIDENCE_OBJECT_UPLOAD_FAILED', 'Synthetic evidence upload failed', `The presigned R2 upload did not complete.${providerDetail}`);
   }
 
-  const completion = await fetch(
+  const completion = await fetchWithBoundedTimeout(
     `${context.apiBase}/profiles/${smokeProfileId}/prescriptions/${smokePrescriptionId}/evidence/${evidenceId}/complete`,
     {
       method: 'POST',
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest) {
     return problem(400, 'EVIDENCE_ID_REQUIRED', 'Evidence identifier is required', 'Provide the synthetic evidence identifier returned by the smoke POST request.');
   }
 
-  const response = await fetch(
+  const response = await fetchWithBoundedTimeout(
     `${context.apiBase}/profiles/${smokeProfileId}/evidence/${evidenceId}/ocr-extractions`,
     { headers: coreHeaders(context.token), cache: 'no-store' },
   );

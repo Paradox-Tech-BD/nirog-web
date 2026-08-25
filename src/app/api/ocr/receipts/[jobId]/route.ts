@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { isCrossOriginMutation } from '@/lib/browser-mutation';
+import { fetchWithBoundedTimeout } from '@/lib/downstream-fetch';
 import { ocrOpsReceiptEndpoint, parseConfirmedReceiptRelayInput } from '@/lib/ocr-receipt-relay';
 
 const privateNoStore = 'private, no-store';
@@ -74,7 +75,7 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
 
   const { jobId } = await context.params;
   try {
-    const response = await fetch(ocrOpsReceiptEndpoint(jobId), {
+    const response = await fetchWithBoundedTimeout(ocrOpsReceiptEndpoint(jobId), {
       method: 'POST',
       headers: { accept: 'application/json', 'content-type': 'application/json' },
       body: JSON.stringify(input),

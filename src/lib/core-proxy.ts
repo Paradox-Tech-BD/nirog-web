@@ -2,6 +2,7 @@ import 'server-only';
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { fetchWithBoundedTimeout } from './downstream-fetch';
 
 const privateNoStore = 'private, no-store';
 export const MAX_CORE_RELAY_REQUEST_BODY_BYTES = 64 * 1024;
@@ -78,7 +79,7 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
         `Keep browser-to-Core request bodies at or below ${MAX_CORE_RELAY_REQUEST_BODY_BYTES} bytes.`,
       );
     }
-    const response = await fetch(`${apiRoot}/${path}${query}`, {
+    const response = await fetchWithBoundedTimeout(`${apiRoot}/${path}${query}`, {
       method: request.method,
       headers,
       body,

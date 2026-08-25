@@ -67,3 +67,4 @@
 - [x] Verify the deployed public Nirog Web response serves the configured compatible cross-origin isolation headers without accessing an account or clinical route.
 - [x] Bound confirmed-only OCR receipt request bodies before parsing so oversized payloads are rejected without reaching downstream receipt delivery.
 - [x] Bound generic browser-to-Core mutation relay request bodies before forwarding, preserving valid clinical workflow payloads and excluding direct evidence uploads.
+- [x] Audit remaining Web relay routes for bounded request reads and downstream timeout behavior; harden only a safe account-independent boundary identified by the review.

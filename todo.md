@@ -76,3 +76,4 @@
 - [x] Restrict browser-to-Core and confirmed-only OCR receipt mutation relays to documented JSON request media types before downstream forwarding.
 - [x] Add deterministic GitHub Actions validation for Nirog Web test, lint, TypeScript, and production-build checks on future code changes.
 - [x] Repair the clean-checkout TypeScript failure exposed by CI so root layout props do not depend on generated build types before the build step runs.
+- [x] Add a deterministic CodeQL workflow for JavaScript and TypeScript security analysis on Nirog Web pushes and pull requests.

@@ -39,7 +39,11 @@ import {
 import { formatEvidenceBytes, validateEvidenceFile } from '@/lib/evidence-upload';
 import { isEvidenceFileControlDisabled, shouldShowNoProfileOnboarding } from '@/lib/evidence-workspace-state';
 import { buildMedicationDraftCorrection, validateMedicationDraftConfirmation } from '@/lib/medication-draft-payload';
-import { defaultActiveProfileId, profileOptionLabel } from '@/lib/profile-selection';
+import {
+  defaultActiveProfileId,
+  isArchivedProfileSelection,
+  profileOptionLabel,
+} from '@/lib/profile-selection';
 
 type DraftForm = {
   medicationName: string;
@@ -149,6 +153,19 @@ export function PrescriptionEvidenceWorkspace() {
         setView({ phase: 'ready', refreshing: false, data: { ...emptyData(), account } });
         return;
       }
+      if (isArchivedProfileSelection(account.profiles, profileId)) {
+        setView({
+          phase: 'ready',
+          refreshing: false,
+          data: {
+            ...emptyData(),
+            account,
+            profileId,
+            notices: ['This profile is archived. Core prevents new prescriptions, evidence uploads, and regimen actions. Select an active profile to continue.'],
+          },
+        });
+        return;
+      }
 
       const accessContext = await readCore<ProfileAccessContext>(`profiles/${profileId}/access-context`);
       const canManageShares = accessContext.permissions.includes('share.manage');
@@ -203,6 +220,7 @@ export function PrescriptionEvidenceWorkspace() {
   useEffect(() => { void refresh(); }, [refresh]);
 
   const data = view.data ?? emptyData();
+  const selectedProfileArchived = isArchivedProfileSelection(data.account?.profiles ?? [], data.profileId);
   const hasProcessingEvidence = data.evidence.some((item) => item.status === 'processing');
   useEffect(() => {
     if (!hasProcessingEvidence || !data.profileId || !data.prescriptionId) return;
@@ -221,7 +239,7 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const createPrescription = async () => {
-    if (!data.profileId || !hasOwnerOrPermission(data.accessContext, 'document.create')) return;
+    if (selectedProfileArchived || !data.profileId || !hasOwnerOrPermission(data.accessContext, 'document.create')) return;
     try {
       const created = await readCore<{ id: string }>(`profiles/${data.profileId}/prescriptions`, {
         method: 'POST',
@@ -243,7 +261,7 @@ export function PrescriptionEvidenceWorkspace() {
 
   const uploadEvidence = async () => {
     const file = upload.file;
-    if (!file || !data.profileId || !data.prescriptionId || !hasOwnerOrPermission(data.accessContext, 'document.create')) return;
+    if (selectedProfileArchived || !file || !data.profileId || !data.prescriptionId || !hasOwnerOrPermission(data.accessContext, 'document.create')) return;
     const validationError = validateEvidenceFile(file);
     if (validationError) {
       setUpload({ status: 'error', file, message: validationError });
@@ -278,7 +296,7 @@ export function PrescriptionEvidenceWorkspace() {
 
   const submitDraft = async (draft: MedicationDraftSummary) => {
     const form = draftForms[draft.id];
-    if (!form || !data.profileId || !hasOwnerOrPermission(data.accessContext, 'regimen.write')) return;
+    if (selectedProfileArchived || !form || !data.profileId || !hasOwnerOrPermission(data.accessContext, 'regimen.write')) return;
     const scheduleTimes = form.scheduleTimes.split(',').map((time) => time.trim()).filter(Boolean);
     const intervalDays = Number(form.intervalDays);
     const timezone = data.account?.profiles.find((profile) => profile.id === data.profileId)?.timezone ?? 'UTC';
@@ -338,14 +356,15 @@ export function PrescriptionEvidenceWorkspace() {
   };
 
   const uploadBusy = ['authorizing', 'transferring', 'queueing'].includes(upload.status);
-  const canCreateDocuments = hasOwnerOrPermission(data.accessContext, 'document.create');
-  const canWriteRegimen = hasOwnerOrPermission(data.accessContext, 'regimen.write');
+  const canCreateDocuments = !selectedProfileArchived && hasOwnerOrPermission(data.accessContext, 'document.create');
+  const canWriteRegimen = !selectedProfileArchived && hasOwnerOrPermission(data.accessContext, 'regimen.write');
   const canManageShares = data.accessContext?.permissions.includes('share.manage') ?? false;
   const fileControlDisabled = isEvidenceFileControlDisabled({
     phase: view.phase,
     profileId: data.profileId,
     prescriptionId: data.prescriptionId,
     canCreateDocuments,
+    profileArchived: selectedProfileArchived,
     uploadBusy,
   });
   const showNoProfileOnboarding = shouldShowNoProfileOnboarding({
@@ -380,7 +399,7 @@ export function PrescriptionEvidenceWorkspace() {
           <div className="pathway-controls">
             <label>Profile<select value={data.profileId} onChange={(event) => selectProfile(event.target.value)} disabled={view.phase === 'loading'}><option value="">Select a profile</option>{data.account?.profiles.map((profile) => <option value={profile.id} key={profile.id}>{profileOptionLabel(profile)}</option>)}</select></label>
             <label>Prescription<select value={data.prescriptionId} onChange={(event) => selectPrescription(event.target.value)} disabled={!data.profileId || view.phase === 'loading'}><option value="">Select a prescription</option>{data.prescriptions.map((prescription, index) => <option value={prescription.id} key={prescription.id}>{prescription.prescriberLabel ?? `Prescription ${index + 1}`}</option>)}</select></label>
-            <button className="button button-secondary" disabled={!data.profileId || !canCreateDocuments || view.phase === 'loading' || uploadBusy} onClick={() => void createPrescription()} type="button">New prescription</button>
+            <button className="button button-secondary" disabled={selectedProfileArchived || !data.profileId || !canCreateDocuments || view.phase === 'loading' || uploadBusy} onClick={() => void createPrescription()} type="button">New prescription</button>
           </div>
         </section>
 
@@ -399,11 +418,11 @@ export function PrescriptionEvidenceWorkspace() {
           <article className="journey-card journey-upload">
             <div className="card-kicker"><span>02</span><p className="eyebrow">Secure intake</p></div>
             <h2>Add a prescription file</h2>
-            <p>{canCreateDocuments ? 'JPEG, PNG, WebP, or PDF, up to 10 MB. Extraction begins automatically after the protected upload completes.' : 'This delegated session can inspect the authorized record, but cannot add files or create prescription containers.'}</p>
+            <p>{selectedProfileArchived ? 'This profile is archived. Core prevents new prescriptions, evidence uploads, and regimen actions until you choose an active profile.' : canCreateDocuments ? 'JPEG, PNG, WebP, or PDF, up to 10 MB. Extraction begins automatically after the protected upload completes.' : 'This delegated session can inspect the authorized record, but cannot add files or create prescription containers.'}</p>
             <div className="upload-tray">
               <span className="upload-icon">{upload.status === 'complete' ? <FileCheck2 size={22} /> : <FileUp size={22} />}</span>
               <div><strong>{upload.file ? upload.file.name : 'No file selected'}</strong><p>{upload.file ? `${formatEvidenceBytes(upload.file.size)} · ${upload.file.type}` : fileControlDisabled ? 'Choose a profile and prescription first.' : 'Choose a file to begin.'}</p></div>
-              {canCreateDocuments ? <label className="file-picker"><span>{upload.file ? 'Replace file' : 'Choose file'}</span><input aria-label="Choose prescription evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={fileControlDisabled} onChange={(event) => selectFile(event.target.files?.[0])} /></label> : <span className="read-only-chip"><ShieldCheck size={15} /> Read-only access</span>}
+              {canCreateDocuments ? <label className="file-picker"><span>{upload.file ? 'Replace file' : 'Choose file'}</span><input aria-label="Choose prescription evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={fileControlDisabled} onChange={(event) => selectFile(event.target.files?.[0])} /></label> : <span className="read-only-chip"><ShieldCheck size={15} /> {selectedProfileArchived ? 'Archived profile' : 'Read-only access'}</span>}
             </div>
             {canCreateDocuments && <button className="button button-primary upload-cta" disabled={upload.status !== 'ready' || uploadBusy} onClick={() => void uploadEvidence()} type="button">{uploadBusy ? <><LoaderCircle className="spin" size={16} /> Working securely</> : <><UploadCloud size={16} /> Start automatic extraction</>}</button>}
             {upload.status !== 'idle' && <p className={upload.status === 'error' ? 'upload-feedback is-error' : 'upload-feedback'} role={upload.status === 'error' ? 'alert' : 'status'}>{uploadBusy ? <LoaderCircle className="spin" size={16} /> : upload.status === 'complete' ? <CheckCircle2 size={16} /> : null}{upload.message ?? 'File ready for automatic extraction.'}</p>}

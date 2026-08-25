@@ -11,6 +11,13 @@ export function defaultActiveProfileId(profiles: readonly SelectableProfile[]): 
   return firstActiveProfile(profiles)?.id ?? '';
 }
 
+export function isArchivedProfileSelection(
+  profiles: readonly SelectableProfile[],
+  profileId: string,
+): boolean {
+  return profiles.some((profile) => profile.id === profileId && profile.status === 'archived');
+}
+
 export function profileOptionLabel(profile: Pick<SelectableProfile, 'id' | 'status'> & { preferredName: string }): string {
   return profile.status === 'archived' ? `${profile.preferredName} (archived)` : profile.preferredName;
 }

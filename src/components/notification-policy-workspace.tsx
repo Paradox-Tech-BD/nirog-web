@@ -23,7 +23,11 @@ import {
   validateNotificationPolicyForm,
   type NotificationPolicyForm,
 } from '@/lib/notification-policy-form';
-import { defaultActiveProfileId, profileOptionLabel } from '@/lib/profile-selection';
+import {
+  defaultActiveProfileId,
+  isArchivedProfileSelection,
+  profileOptionLabel,
+} from '@/lib/profile-selection';
 
 type PolicyState = {
   phase: 'loading' | 'ready';
@@ -71,6 +75,16 @@ export function NotificationPolicyWorkspace() {
         setState({ ...initialState, phase: 'ready', account, error: 'A profile is required before notification policies can be managed.' });
         return;
       }
+      if (isArchivedProfileSelection(account.profiles, resolvedProfileId)) {
+        setProfileId(resolvedProfileId);
+        setState({
+          ...initialState,
+          phase: 'ready',
+          account,
+          error: 'This profile is archived. Select an active profile before viewing or changing notification policies.',
+        });
+        return;
+      }
       const context = await readCore<ProfileAccessContext>(`profiles/${resolvedProfileId}/access-context`);
       const ownerReads = context.accessKind === 'owner'
         ? await Promise.allSettled([
@@ -92,6 +106,7 @@ export function NotificationPolicyWorkspace() {
   useEffect(() => { void load(); }, [load]);
 
   const isOwner = state.context?.accessKind === 'owner';
+  const selectedProfileArchived = isArchivedProfileSelection(state.account?.profiles ?? [], profileId);
   const recipients = useMemo(() => {
     const owner = state.account?.account?.id ? [{ accountId: state.account.account.id, label: 'Profile owner' }] : [];
     return [...owner, ...state.grants.filter((grant) => grant.status === 'active').map((grant) => ({ accountId: grant.granteeAccountId, label: `${roleLabel(grant.roleCode)} recipient` }))];
@@ -140,7 +155,7 @@ export function NotificationPolicyWorkspace() {
     {action.message && <section className="workflow-banner" aria-live="polite"><ShieldCheck size={19} /><div><strong>Policy action completed.</strong><p>{action.message}</p></div></section>}
     <BrowserPushRegistrationCard />
     <section className="care-circle-selector"><label>Profile<select value={profileId} onChange={(event) => void load(event.target.value)} disabled={state.phase === 'loading' || action.kind !== 'idle'}><option value="">Select a profile</option>{state.account?.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profileOptionLabel(profile)}</option>)}</select></label><p><ShieldCheck size={16} /> Core evaluates ownership, delegated grants, and notification-delivery consent before a policy can be stored.</p></section>
-    {state.phase === 'loading' ? <section className="grant-stage"><p className="state-line"><LoaderCircle className="spin" size={17} /> Loading notification-policy access…</p></section> : !profileId ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Profile required</p><h2>Select an owned profile to manage notification policies.</h2><p>Policies are scoped to an individual care profile. No provider configuration is available from this page.</p></div></div></section> : !isOwner ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Owner-managed control</p><h2>Only the profile owner can change notification policies.</h2><p>Your delegated care access remains separate from recipient eligibility. This view does not expose policy recipients, provider configuration, or delivery targets.</p></div><span>Read only</span></div></section> : <>
+    {state.phase === 'loading' ? <section className="grant-stage"><p className="state-line"><LoaderCircle className="spin" size={17} /> Loading notification-policy access…</p></section> : selectedProfileArchived ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Archived profile</p><h2>Select an active profile to manage notification policies.</h2><p>Core prevents profile-scoped policy reads and writes for archived profiles. No policy or provider state was changed.</p></div></div></section> : !profileId ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Profile required</p><h2>Select an owned profile to manage notification policies.</h2><p>Policies are scoped to an individual care profile. No provider configuration is available from this page.</p></div></div></section> : !isOwner ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Owner-managed control</p><h2>Only the profile owner can change notification policies.</h2><p>Your delegated care access remains separate from recipient eligibility. This view does not expose policy recipients, provider configuration, or delivery targets.</p></div><span>Read only</span></div></section> : <>
       <section className="policy-grid"><article className="plan-panel plan-panel-emphasis"><div className="plan-panel-heading"><div><p className="eyebrow">Policy intent</p><h2>Create or reactivate a policy</h2></div><UserRoundCheck size={20} /></div><p>Core will reject a delegated recipient if its grant or notification-delivery consent is inactive or expired. External channels remain intent-only until their provider is configured.</p><div className="policy-form-grid"><label>Eligible recipient<select value={form.recipientAccountId} onChange={(event) => setForm((current) => ({ ...current, recipientAccountId: event.target.value }))}>{recipients.length === 0 && <option value="">No eligible recipient available</option>}{recipients.map((recipient) => <option key={recipient.accountId} value={recipient.accountId}>{recipient.label}</option>)}</select></label><label>Care signal<select value={form.eventClass} onChange={(event) => setForm((current) => ({ ...current, eventClass: event.target.value as NotificationPolicySummary['eventClass'] }))}><option value="reminder_due">Reminder due</option><option value="refill_alert">Refill alert</option></select></label><label>Intended channel<select value={form.channel} onChange={(event) => setForm((current) => ({ ...current, channel: event.target.value as NotificationPolicySummary['channel'] }))}><option value="in_app">In-app</option><option value="email">Email — intent only</option><option value="push">Push — intent only</option><option value="sms">SMS — intent only</option></select></label><label>Profile timezone<input readOnly value={form.timezone} /></label><label>Quiet hours start<input type="time" value={form.quietHoursStart} onChange={(event) => setForm((current) => ({ ...current, quietHoursStart: event.target.value }))} /></label><label>Quiet hours end<input type="time" value={form.quietHoursEnd} onChange={(event) => setForm((current) => ({ ...current, quietHoursEnd: event.target.value }))} /></label></div><button className="button button-primary" disabled={action.kind !== 'idle' || recipients.length === 0} onClick={() => void savePolicy()} type="button"><ShieldCheck size={16} /> {action.kind === 'saving' ? 'Saving policy…' : 'Save policy intent'}</button></article>
         <article className="plan-panel"><div className="plan-panel-heading"><div><p className="eyebrow">Delivery boundary</p><h2>What this page does not do</h2></div><CircleDashed size={20} /></div><p>This workspace never displays a recipient address or phone number, device target, provider payload, credential, or encrypted registration. It also never triggers a provider send.</p><div className="care-boundary"><CircleDashed size={16} /><span>Use the owner delivery-status panel to see safe provider readiness and lifecycle metadata. A ready provider still does not prove a message was delivered.</span></div></article></section>
       <section className="grant-stage policy-list-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Stored intent</p><h2>Profile notification policies</h2><p>These policy rows show authorization intent only. They do not expose contact details or prove any external delivery.</p></div><span>{state.policies.length} record{state.policies.length === 1 ? '' : 's'}</span></div>{state.policies.length === 0 ? <p className="state-line state-line-empty"><CircleDashed size={17} /> No policy is stored for this profile yet.</p> : <ul className="policy-list">{state.policies.map((policy) => <li key={policy.id}><div><strong>{notificationPolicyEventLabel(policy.eventClass)} · {notificationPolicyChannelLabel(policy.channel)}</strong><p>{recipientLabel(policy, state.grants)} · {quietHoursLabel(policy)} · {policy.status}</p><small>{policy.channel === 'in_app' ? 'In-app intent does not replace a durable inbox record.' : `${notificationPolicyChannelLabel(policy.channel)} is not a delivery claim.`}</small></div>{policy.status === 'active' ? <button className="button button-secondary" disabled={action.kind !== 'idle'} onClick={() => void withdrawPolicy(policy)} type="button"><Trash2 size={15} /> {action.kind === 'withdrawing' && action.policyId === policy.id ? 'Withdrawing…' : 'Withdraw'}</button> : <span className="status-chip">Withdrawn</span>}</li>)}</ul>}</section>

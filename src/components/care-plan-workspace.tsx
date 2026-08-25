@@ -25,7 +25,11 @@ import {
   type ProfileAccessContext,
 } from '@/lib/core-read-model';
 import { deliveryStatusDisplay } from '@/lib/delivery-status-display';
-import { defaultActiveProfileId, profileOptionLabel } from '@/lib/profile-selection';
+import {
+  defaultActiveProfileId,
+  isArchivedProfileSelection,
+  profileOptionLabel,
+} from '@/lib/profile-selection';
 
 type ReadState = {
   phase: 'loading' | 'ready';
@@ -112,6 +116,20 @@ export function CarePlanWorkspace() {
         setState({ ...initialState, phase: 'ready', account, error: 'A profile is required before a care plan can be loaded.' });
         return;
       }
+      if (isArchivedProfileSelection(account.profiles, resolvedProfileId)) {
+        if (loadVersion !== loadVersionRef.current) return;
+        selectionRef.current = { profileId: resolvedProfileId, regimenId: '' };
+        setProfileId(resolvedProfileId);
+        setRegimenId('');
+        setScheduleId('');
+        setState({
+          ...initialState,
+          phase: 'ready',
+          account,
+          error: 'This profile is archived. Select an active profile before viewing or changing a care plan.',
+        });
+        return;
+      }
       const regimens = await boundedCareRead<RegimenSummary[]>(`profiles/${resolvedProfileId}/medications`);
       const accessContext = await boundedCareRead<ProfileAccessContext>(`profiles/${resolvedProfileId}/access-context`);
       const resolvedRegimenId = requestedRegimenId || (resolvedProfileId === priorSelection.profileId ? priorSelection.regimenId : '') || regimens[0]?.id || '';
@@ -158,8 +176,10 @@ export function CarePlanWorkspace() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const selectedProfileArchived = isArchivedProfileSelection(state.account?.profiles ?? [], profileId);
+
   useEffect(() => {
-    if (!profileId || typeof EventSource === 'undefined') return;
+    if (!profileId || selectedProfileArchived || typeof EventSource === 'undefined') return;
     const stream = new EventSource(`/api/core/profiles/${profileId}/notifications/stream`);
     const refreshDurableInbox = () => {
       if (streamRefreshTimerRef.current !== undefined) return;
@@ -179,7 +199,7 @@ export function CarePlanWorkspace() {
         streamRefreshTimerRef.current = undefined;
       }
     };
-  }, [load, profileId]);
+  }, [load, profileId, selectedProfileArchived]);
 
   const selectedRegimen = useMemo(() => state.regimens.find((regimen) => regimen.id === regimenId) ?? null, [state.regimens, regimenId]);
   const activeOccurrence = state.occurrences.find((occurrence) => occurrence.state === 'delivered' || occurrence.state === 'snoozed');
@@ -207,7 +227,7 @@ export function CarePlanWorkspace() {
     {actionMessage && <section className="workflow-banner" aria-live="polite"><CheckCircle2 size={19} /><div><strong>Care-plan command completed.</strong><p>{actionMessage}</p></div></section>}
     {noProfile ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Profile required</p><h2>Create or access a profile first.</h2><p>The care plan only shows profile-scoped data. Return to the overview to create a profile or request delegated access.</p></div></div></section> : <>
       <section className="pathway-selector"><div className="pathway-step"><span>01</span><div><p className="eyebrow">Active context</p><h2>Choose a profile and regimen</h2></div></div><div className="pathway-controls"><label>Profile<select value={profileId} onChange={(event) => void load(event.target.value, '')} disabled={state.phase === 'loading'}>{state.account?.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profileOptionLabel(profile)}</option>)}</select></label><label>Regimen<select value={regimenId} onChange={(event) => void load(profileId, event.target.value)} disabled={!profileId || state.regimens.length === 0}>{state.regimens.length === 0 && <option value="">No submitted regimen</option>}{state.regimens.map((regimen) => <option key={regimen.id} value={regimen.id}>{regimen.medicationName}</option>)}</select></label><span className="read-only-chip"><ClipboardCheck size={15} /> {profileTimezone}</span></div></section>
-      {!selectedRegimen ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">No regimen available</p><h2>Submit an explicit regimen from a medication draft.</h2><p>Automatic extraction can prepare editable drafts, but reminders, adherence, inventory, and refills begin only after a regimen is created through the prescription workspace.</p></div></div></section> : <>
+      {selectedProfileArchived ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">Archived profile</p><h2>Select an active profile to view or change a care plan.</h2><p>Core prevents profile-scoped care-plan reads, reminders, adherence outcomes, inventory changes, and refill actions for an archived profile.</p></div></div></section> : !selectedRegimen ? <section className="grant-stage"><div className="draft-stage-heading"><div><p className="eyebrow">No regimen available</p><h2>Submit an explicit regimen from a medication draft.</h2><p>Automatic extraction can prepare editable drafts, but reminders, adherence, inventory, and refills begin only after a regimen is created through the prescription workspace.</p></div></div></section> : <>
         <section className="care-plan-grid">
           <article className="plan-panel plan-panel-emphasis"><div className="card-kicker"><span>02</span><p className="eyebrow">Explicit regimen</p></div><h2>{selectedRegimen.medicationName}</h2><p>{selectedRegimen.doseQuantity} {selectedRegimen.doseUnitCode} · {selectedRegimen.routeCode} · active from {selectedRegimen.startedOn}</p><div className="plan-chip-row">{selectedRegimen.schedules.map((schedule) => <span key={schedule.id}>{schedule.localTime} · every {schedule.intervalDays} day{schedule.intervalDays === 1 ? '' : 's'}</span>)}</div></article>
           <article className="plan-panel"><div className="card-kicker"><span>03</span><p className="eyebrow">Today’s adherence</p></div><h2>{state.adherence ? `${state.adherence.takenCount}/${state.adherence.scheduledCount}` : 'No outcome logged'}</h2><p>{state.streak ? `${state.streak.currentStreakDays} current-day streak · ${state.streak.longestStreakDays} longest` : 'Record a dose outcome to begin the adherence read model.'}</p><button className="button button-secondary" disabled={Boolean(busy)} onClick={() => void runAction('Taken dose outcome', `profiles/${profileId}/regimens/${regimenId}/dose-logs`, 'POST', { scheduledFor: doseAt ? new Date(doseAt).toISOString() : new Date().toISOString(), status: 'taken' })} type="button"><CheckCircle2 size={16} /> {busy === 'Taken dose outcome' ? 'Saving…' : 'Record taken dose'}</button></article>

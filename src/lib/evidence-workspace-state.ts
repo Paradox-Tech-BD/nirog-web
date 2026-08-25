@@ -22,6 +22,7 @@ export type EvidenceControlInput = {
   profileId: string;
   prescriptionId: string;
   canCreateDocuments: boolean;
+  profileArchived: boolean;
   uploadBusy: boolean;
 };
 
@@ -30,6 +31,7 @@ export function isEvidenceFileControlDisabled(input: EvidenceControlInput): bool
   return !input.profileId
     || !input.prescriptionId
     || !input.canCreateDocuments
+    || input.profileArchived
     || input.uploadBusy
     || input.phase === 'loading';
 }

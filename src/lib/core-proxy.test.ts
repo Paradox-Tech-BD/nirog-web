@@ -40,6 +40,7 @@ describe('proxyAuthorizedCoreRequest', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://core.example/api/v1/profiles/profile/regimens/regimen/reminder-occurrences?from=2026-08-23T00%3A00%3A00.000Z&to=2026-08-24T00%3A00%3A00.000Z',
       expect.objectContaining({ method: 'GET' }),
@@ -61,6 +62,7 @@ describe('proxyAuthorizedCoreRequest', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/event-stream');
+    expect(response.headers.get('cache-control')).toBe('private, no-store, no-cache, no-transform');
     expect(await response.text()).toContain('notification.ready');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://core.example/api/v1/profiles/profile/notifications/stream',

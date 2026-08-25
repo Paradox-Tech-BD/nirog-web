@@ -3,10 +3,12 @@ import 'server-only';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
+const privateNoStore = 'private, no-store';
+
 function problem(status: number, code: string, title: string, detail: string) {
   return NextResponse.json(
     { type: `https://nirog.app/problems/${code.toLowerCase().replaceAll('_', '-')}`, title, status, code, detail },
-    { status, headers: { 'content-type': 'application/problem+json' } },
+    { status, headers: { 'content-type': 'application/problem+json', 'cache-control': privateNoStore } },
   );
 }
 
@@ -42,7 +44,8 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
     const responseHeaders = {
       'content-type': response.headers.get('content-type') ?? 'application/json',
       ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),
-      ...(acceptsEventStream ? { 'cache-control': 'no-cache, no-transform', 'x-accel-buffering': 'no' } : {}),
+      'cache-control': acceptsEventStream ? `${privateNoStore}, no-cache, no-transform` : privateNoStore,
+      ...(acceptsEventStream ? { 'x-accel-buffering': 'no' } : {}),
     };
     if (acceptsEventStream && response.body) {
       return new NextResponse(response.body, { status: response.status, headers: responseHeaders });

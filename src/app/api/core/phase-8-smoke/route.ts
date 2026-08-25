@@ -1,6 +1,7 @@
 // Phase 8 smoke route: server-bound Clerk token, fixed isolated profile, readable synthetic PNG only.
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { isCrossOriginMutation } from '@/lib/browser-mutation';
 import { coreApiRoot } from '../me/route';
 
 const privateNoStore = 'private, no-store';
@@ -55,7 +56,10 @@ function coreHeaders(token: string, idempotencyKey?: string): HeadersInit {
   };
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  if (isCrossOriginMutation(request)) {
+    return problem(403, 'CROSS_ORIGIN_REQUEST_REJECTED', 'Cross-origin mutation request rejected', 'Run the bounded synthetic smoke workflow from the Nirog web companion.');
+  }
   const context = await sessionContext();
   if ('error' in context) return context.error;
 

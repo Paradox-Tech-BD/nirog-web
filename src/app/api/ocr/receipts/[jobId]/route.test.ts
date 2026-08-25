@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(async () => ({ isAuthenticated: true, sessionId: 'session-test' })),
+  isCrossOriginMutation: vi.fn(() => false),
 }));
 
 vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/browser-mutation', () => ({ isCrossOriginMutation: mocks.isCrossOriginMutation }));
 vi.mock('@/lib/ocr-receipt-relay', () => ({
   ocrOpsReceiptEndpoint: (jobId: string) => `https://ocr.example/api/v1/core/receipts?job_id=${encodeURIComponent(jobId)}`,
   parseConfirmedReceiptRelayInput: () => ({

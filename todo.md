@@ -59,3 +59,5 @@
 - [x] Ensure the OCR review-receipt relay applies private no-store response headers while preserving identifier-only, confirmed-only delivery semantics.
 - [x] Audit remaining authenticated and Core-adjacent Web API routes for explicit private no-store response policies and cover any uncovered route with regression tests.
 - [x] Add and regression-test conservative production browser security headers that preserve Clerk authentication and supported Nirog clinical workflows.
+- [x] Verify the deployed public Nirog Web response serves the configured conservative security headers without accessing an account or clinical route.
+- [x] Audit browser-facing authenticated mutation relays for cross-origin request defenses and add only workflow-preserving safeguards with regression coverage.

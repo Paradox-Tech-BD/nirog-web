@@ -4,9 +4,11 @@ const mocks = vi.hoisted(() => ({
   proxyAuthorizedCoreRequest: vi.fn(async () => new Response(null, { status: 204 })),
   isAllowedCoreEvidencePath: vi.fn(() => true),
   isReadOnlyCoreOperationsPath: vi.fn(() => false),
+  isCrossOriginMutation: vi.fn(() => false),
 }));
 
 vi.mock('@/lib/core-proxy', () => ({ proxyAuthorizedCoreRequest: mocks.proxyAuthorizedCoreRequest }));
+vi.mock('@/lib/browser-mutation', () => ({ isCrossOriginMutation: mocks.isCrossOriginMutation }));
 vi.mock('@/lib/core-route-policy', () => ({
   isAllowedCoreEvidencePath: mocks.isAllowedCoreEvidencePath,
   isReadOnlyCoreOperationsPath: mocks.isReadOnlyCoreOperationsPath,
@@ -60,6 +62,19 @@ describe('Core proxy aggregate operations status bridge', () => {
     const response = await POST(request, { params: Promise.resolve({ corePath: path }) });
 
     expect(response.status).toBe(404);
+    expect(mocks.proxyAuthorizedCoreRequest).not.toHaveBeenCalledWith(request, path.join('/'));
+  });
+});
+
+describe('Core proxy cross-origin mutation boundary', () => {
+  it('rejects a cross-origin mutation before it reaches the authorized Core proxy', async () => {
+    const path = ['profiles', '00000000-0000-4000-8000-000000000101', 'medications'];
+    mocks.isCrossOriginMutation.mockReturnValueOnce(true);
+    const request = new Request(`https://www.nirog.me/api/core/${path.join('/')}`, { method: 'POST' });
+
+    const response = await POST(request, { params: Promise.resolve({ corePath: path }) });
+
+    expect(response.status).toBe(403);
     expect(mocks.proxyAuthorizedCoreRequest).not.toHaveBeenCalledWith(request, path.join('/'));
   });
 });

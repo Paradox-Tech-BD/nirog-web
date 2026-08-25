@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { isCrossOriginMutation } from '@/lib/browser-mutation';
 import { ocrOpsReceiptEndpoint, parseConfirmedReceiptRelayInput } from '@/lib/ocr-receipt-relay';
 
 const privateNoStore = 'private, no-store';
@@ -12,6 +13,9 @@ function problem(status: number, code: string, title: string, detail: string) {
 }
 
 export async function POST(request: Request, context: { params: Promise<{ jobId: string }> }) {
+  if (isCrossOriginMutation(request)) {
+    return problem(403, 'CROSS_ORIGIN_REQUEST_REJECTED', 'Cross-origin mutation request rejected', 'Use the Nirog web companion to deliver a confirmed OCR review receipt.');
+  }
   const { isAuthenticated, sessionId } = await auth();
   if (!isAuthenticated || !sessionId) {
     return problem(401, 'UNAUTHENTICATED', 'Sign in required', 'Sign in before delivering a confirmed OCR review receipt.');

@@ -7,9 +7,11 @@ const mocks = vi.hoisted(() => ({
     sessionId: 'session-test',
     getToken: async () => 'test-token',
   })),
+  isCrossOriginMutation: vi.fn(() => false),
 }));
 
 vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/browser-mutation', () => ({ isCrossOriginMutation: mocks.isCrossOriginMutation }));
 
 import { GET } from './route';
 

@@ -47,6 +47,19 @@ export type CoreSuccess<T> = {
   meta: { correlationId: string };
 };
 
+export function isCoreSuccess(value: unknown): value is CoreSuccess<unknown> {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      'data' in value &&
+      'meta' in value &&
+      value.meta &&
+      typeof value.meta === 'object' &&
+      'correlationId' in value.meta &&
+      typeof value.meta.correlationId === 'string',
+  );
+}
+
 export function isCoreProblem(value: unknown): value is CoreProblem {
   return Boolean(
     value &&

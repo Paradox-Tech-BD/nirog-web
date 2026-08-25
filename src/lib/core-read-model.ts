@@ -3,8 +3,8 @@
  * the same-origin Web proxy. It never assumes a Core response is a clinical
  * commit, and it never exposes raw worker or storage payloads to the UI.
  */
-import type { CoreProblem, CoreSuccess, ProfileGrantProjection } from './core-api';
-import { isCoreProblem } from './core-api';
+import type { CoreProblem, ProfileGrantProjection } from './core-api';
+import { isCoreProblem, isCoreSuccess } from './core-api';
 
 export type PrescriptionSummary = {
   id: string;
@@ -246,7 +246,9 @@ export async function readCore<T>(path: string, init?: RequestInit): Promise<T> 
     throw new CoreReadError(unreadableProblem(response.status));
   }
 
-  return (body as CoreSuccess<T>).data;
+  if (!isCoreSuccess(body)) throw new CoreReadError(unreadableProblem());
+
+  return body.data as T;
 }
 
 export function coreMessage(error: unknown, fallback: string): string {

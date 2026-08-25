@@ -13,9 +13,21 @@ describe('readCore response boundary', () => {
   });
 
   it('continues to unwrap Core success envelopes for JSON reads', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ data: { status: 'active' } })));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ data: { status: 'active' }, meta: { correlationId: 'not-provided' } })));
 
     await expect(readCore<{ status: string }>('example')).resolves.toEqual({ status: 'active' });
+  });
+
+  it('rejects a successful response without the required Core envelope', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ meta: { correlationId: 'not-provided' } })));
+
+    await expect(readCore<{ status: string }>('example')).rejects.toMatchObject({
+      name: 'CoreReadError',
+      problem: {
+        status: 502,
+        code: 'CORE_RESPONSE_UNREADABLE',
+      },
+    });
   });
 });
 

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { coreApiRoot } from '../me/route';
 
+const privateNoStore = 'private, no-store';
 const smokeProfileId = '94a36dc8-7502-4aa3-b00b-1138d47abd47';
 const smokePrescriptionId = 'e910ce4c-43f4-4c51-b57f-ac5defd3348a';
 const syntheticPng = Buffer.from(
@@ -19,7 +20,7 @@ function problem(status: number, code: string, title: string, detail: string) {
       code,
       detail,
     },
-    { status, headers: { 'content-type': 'application/problem+json' } },
+    { status, headers: { 'content-type': 'application/problem+json', 'cache-control': privateNoStore } },
   );
 }
 
@@ -100,15 +101,18 @@ export async function POST() {
     return problem(completion.status || 502, completionBody?.code ?? 'OCR_ENQUEUE_FAILED', 'Synthetic OCR work was not queued', 'The upload completed but Core did not enqueue the bounded OCR job.');
   }
 
-  return NextResponse.json({
-    data: {
-      profileId: smokeProfileId,
-      prescriptionId: smokePrescriptionId,
-      evidenceId,
-      ocrJobId: completionBody.data.ocrJobId,
-      next: `/api/core/phase-8-smoke?evidenceId=${encodeURIComponent(evidenceId)}`,
+  return NextResponse.json(
+    {
+      data: {
+        profileId: smokeProfileId,
+        prescriptionId: smokePrescriptionId,
+        evidenceId,
+        ocrJobId: completionBody.data.ocrJobId,
+        next: `/api/core/phase-8-smoke?evidenceId=${encodeURIComponent(evidenceId)}`,
+      },
     },
-  });
+    { headers: { 'cache-control': privateNoStore } },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -127,6 +131,9 @@ export async function GET(request: NextRequest) {
   const body = await response.text();
   return new NextResponse(body, {
     status: response.status,
-    headers: { 'content-type': response.headers.get('content-type') ?? 'application/json' },
+    headers: {
+      'content-type': response.headers.get('content-type') ?? 'application/json',
+      'cache-control': privateNoStore,
+    },
   });
 }

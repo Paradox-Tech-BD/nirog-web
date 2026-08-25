@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
 vi.mock('server-only', () => ({}));
 
-import { proxyAuthorizedCoreRequest } from './core-proxy';
+import { MAX_CORE_RELAY_REQUEST_BODY_BYTES, proxyAuthorizedCoreRequest } from './core-proxy';
 
 describe('proxyAuthorizedCoreRequest', () => {
   const originalCoreUrl = process.env.NIROG_CORE_API_URL;
@@ -90,5 +90,40 @@ describe('proxyAuthorizedCoreRequest', () => {
     );
     const init = fetchMock.mock.calls.at(0)?.at(1) as RequestInit | undefined;
     expect((init?.headers as Headers).get('authorization')).toBe('Bearer test-token');
+  });
+
+  it('forwards a bounded mutation body without changing its bytes', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    global.fetch = fetchMock as typeof fetch;
+    const body = JSON.stringify({ timezone: 'Asia/Dhaka' });
+    const request = new Request('https://www.nirog.me/api/core/profiles', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    });
+
+    const response = await proxyAuthorizedCoreRequest(request, 'profiles');
+
+    expect(response.status).toBe(204);
+    const init = fetchMock.mock.calls.at(0)?.at(1) as RequestInit | undefined;
+    expect(await (init?.body as Blob).text()).toBe(body);
+  });
+
+  it('rejects an oversized mutation body before any Core fetch', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as typeof fetch;
+    const request = new Request('https://www.nirog.me/api/core/profiles', {
+      method: 'POST',
+      body: 'x'.repeat(MAX_CORE_RELAY_REQUEST_BODY_BYTES + 1),
+    });
+
+    const response = await proxyAuthorizedCoreRequest(request, 'profiles');
+
+    expect(response.status).toBe(413);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(await response.json()).toMatchObject({ code: 'CORE_REQUEST_TOO_LARGE' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

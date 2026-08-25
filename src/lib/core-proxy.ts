@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 const privateNoStore = 'private, no-store';
+export const MAX_CORE_RELAY_REQUEST_BODY_BYTES = 64 * 1024;
 
 function problem(status: number, code: string, title: string, detail: string) {
   return NextResponse.json(
@@ -15,6 +16,39 @@ function problem(status: number, code: string, title: string, detail: string) {
 function coreApiRoot(apiBase: string): string {
   const normalized = apiBase.replace(/\/+$/, '');
   return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
+}
+
+async function readBoundedRequestBody(request: Request): Promise<Blob | null | undefined> {
+  if (request.method === 'GET' || request.method === 'HEAD' || !request.body) return undefined;
+
+  const declaredLength = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_CORE_RELAY_REQUEST_BODY_BYTES) return null;
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalLength = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalLength += value.byteLength;
+      if (totalLength > MAX_CORE_RELAY_REQUEST_BODY_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new Blob([body]);
 }
 
 export async function proxyAuthorizedCoreRequest(request: Request, path: string): Promise<NextResponse> {
@@ -35,10 +69,19 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
   try {
     const query = new URL(request.url).search;
     const apiRoot = coreApiRoot(configuredApiBase);
+    const body = await readBoundedRequestBody(request);
+    if (body === null) {
+      return problem(
+        413,
+        'CORE_REQUEST_TOO_LARGE',
+        'Core request is too large',
+        `Keep browser-to-Core request bodies at or below ${MAX_CORE_RELAY_REQUEST_BODY_BYTES} bytes.`,
+      );
+    }
     const response = await fetch(`${apiRoot}/${path}${query}`, {
       method: request.method,
       headers,
-      body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text(),
+      body,
       cache: 'no-store',
     });
     const responseHeaders = {

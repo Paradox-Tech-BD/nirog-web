@@ -61,11 +61,22 @@ export function isCoreSuccess(value: unknown): value is CoreSuccess<unknown> {
 }
 
 export function isCoreProblem(value: unknown): value is CoreProblem {
-  return Boolean(
-    value &&
-      typeof value === 'object' &&
-      'status' in value &&
-      'code' in value &&
-      'title' in value,
+  if (!value || typeof value !== 'object') return false;
+
+  const problem = value as Record<string, unknown>;
+  return (
+    typeof problem.type === 'string' &&
+    problem.type.length > 0 &&
+    typeof problem.title === 'string' &&
+    problem.title.length > 0 &&
+    typeof problem.status === 'number' &&
+    Number.isInteger(problem.status) &&
+    problem.status >= 400 &&
+    problem.status <= 599 &&
+    typeof problem.code === 'string' &&
+    problem.code.length > 0 &&
+    typeof problem.correlationId === 'string' &&
+    problem.correlationId.length > 0 &&
+    (problem.detail === undefined || (typeof problem.detail === 'string' && problem.detail.length > 0))
   );
 }

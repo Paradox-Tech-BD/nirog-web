@@ -29,6 +29,42 @@ describe('readCore response boundary', () => {
       },
     });
   });
+
+  it('preserves a valid Core problem response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+      type: 'https://nirog.app/problems/validation-failed',
+      title: 'Request validation failed',
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      correlationId: 'not-provided',
+      detail: 'The request does not satisfy the declared API contract.',
+    }, { status: 400 })));
+
+    await expect(readCore<{ status: string }>('example')).rejects.toMatchObject({
+      problem: {
+        status: 400,
+        code: 'VALIDATION_FAILED',
+      },
+    });
+  });
+
+  it('rejects a malformed Core problem response rather than surfacing its detail', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+      type: 'https://nirog.app/problems/access-denied',
+      title: 'Access denied',
+      status: 403,
+      code: 'ACCESS_DENIED',
+      correlationId: 'not-provided',
+      detail: { message: 'This value must not reach a UI error surface.' },
+    }, { status: 403 })));
+
+    await expect(readCore<{ status: string }>('example')).rejects.toMatchObject({
+      problem: {
+        status: 403,
+        code: 'CORE_RESPONSE_UNREADABLE',
+      },
+    });
+  });
 });
 
 describe('coreMessage', () => {

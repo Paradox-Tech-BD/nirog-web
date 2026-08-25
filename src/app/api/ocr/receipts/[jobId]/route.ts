@@ -5,6 +5,7 @@ import { readBoundedRequestBytes } from '@/lib/bounded-request-bytes';
 import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
 import { ocrOpsReceiptEndpoint, parseConfirmedReceiptRelayInput } from '@/lib/ocr-receipt-relay';
 import { isRelayJsonResponse } from '@/lib/relay-response-media-type';
+import { hasSupportedJsonMutationMediaType } from '@/lib/request-media-type';
 
 const privateNoStore = 'private, no-store';
 const maximumReceiptRequestBytes = 8 * 1024;
@@ -34,6 +35,9 @@ async function readReceiptRequest(request: Request): Promise<ReceiptRequest> {
 export async function POST(request: Request, context: { params: Promise<{ jobId: string }> }) {
   if (isCrossOriginMutation(request)) {
     return problem(403, 'CROSS_ORIGIN_REQUEST_REJECTED', 'Cross-origin mutation request rejected', 'Use the Nirog web companion to deliver a confirmed OCR review receipt.');
+  }
+  if (!hasSupportedJsonMutationMediaType(request)) {
+    return problem(415, 'RECEIPT_REQUEST_MEDIA_TYPE_UNSUPPORTED', 'Receipt request media type is unsupported', 'Send the bounded confirmation payload as JSON.');
   }
   const { isAuthenticated, sessionId } = await auth();
   if (!isAuthenticated || !sessionId) {

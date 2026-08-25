@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   isAllowedCoreEvidencePath: vi.fn(() => true),
   isReadOnlyCoreOperationsPath: vi.fn(() => false),
   isCrossOriginMutation: vi.fn(() => false),
+  hasSupportedJsonMutationMediaType: vi.fn(() => true),
 }));
 
 vi.mock('@/lib/core-proxy', () => ({ proxyAuthorizedCoreRequest: mocks.proxyAuthorizedCoreRequest }));
@@ -13,6 +14,7 @@ vi.mock('@/lib/core-route-policy', () => ({
   isAllowedCoreEvidencePath: mocks.isAllowedCoreEvidencePath,
   isReadOnlyCoreOperationsPath: mocks.isReadOnlyCoreOperationsPath,
 }));
+vi.mock('@/lib/request-media-type', () => ({ hasSupportedJsonMutationMediaType: mocks.hasSupportedJsonMutationMediaType }));
 
 import { GET, PATCH, POST, PUT } from './route';
 
@@ -75,6 +77,23 @@ describe('Core proxy cross-origin mutation boundary', () => {
     const response = await POST(request, { params: Promise.resolve({ corePath: path }) });
 
     expect(response.status).toBe(403);
+    expect(mocks.proxyAuthorizedCoreRequest).not.toHaveBeenCalledWith(request, path.join('/'));
+  });
+});
+
+describe('Core proxy request media-type boundary', () => {
+  it('rejects an unsupported mutation body before it reaches the authorized Core proxy', async () => {
+    const path = ['profiles', '00000000-0000-4000-8000-000000000101', 'medications'];
+    mocks.hasSupportedJsonMutationMediaType.mockReturnValueOnce(false);
+    const request = new Request(`https://www.nirog.me/api/core/${path.join('/')}`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: 'unexpected',
+    });
+
+    const response = await POST(request, { params: Promise.resolve({ corePath: path }) });
+
+    expect(response.status).toBe(415);
     expect(mocks.proxyAuthorizedCoreRequest).not.toHaveBeenCalledWith(request, path.join('/'));
   });
 });

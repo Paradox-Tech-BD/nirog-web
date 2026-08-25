@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(async () => ({ isAuthenticated: true, sessionId: 'session-test' })),
   isCrossOriginMutation: vi.fn(() => false),
+  hasSupportedJsonMutationMediaType: vi.fn(() => true),
 }));
 
 vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
@@ -17,6 +18,7 @@ vi.mock('@/lib/downstream-fetch', () => ({
   readBoundedDownstreamText: (response: Response) => response.text(),
 }));
 vi.mock('@/lib/relay-response-media-type', () => ({ isRelayJsonResponse: () => true }));
+vi.mock('@/lib/request-media-type', () => ({ hasSupportedJsonMutationMediaType: mocks.hasSupportedJsonMutationMediaType }));
 vi.mock('@/lib/browser-mutation', () => ({ isCrossOriginMutation: mocks.isCrossOriginMutation }));
 vi.mock('@/lib/ocr-receipt-relay', () => ({
   ocrOpsReceiptEndpoint: (jobId: string) => `https://ocr.example/api/v1/core/receipts?job_id=${encodeURIComponent(jobId)}`,
@@ -76,6 +78,23 @@ describe('confirmed OCR receipt relay', () => {
 
     expect(response.status).toBe(413);
     expect(await response.json()).toMatchObject({ code: 'RECEIPT_REQUEST_TOO_LARGE' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-JSON body before attempting downstream receipt delivery', async () => {
+    mocks.hasSupportedJsonMutationMediaType.mockReturnValueOnce(false);
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as typeof fetch;
+    const request = new Request('https://www.nirog.me/api/ocr/receipts/job-test', {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: 'unexpected',
+    });
+
+    const response = await POST(request, { params: Promise.resolve({ jobId: 'job-test' }) });
+
+    expect(response.status).toBe(415);
+    expect(await response.json()).toMatchObject({ code: 'RECEIPT_REQUEST_MEDIA_TYPE_UNSUPPORTED' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

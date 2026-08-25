@@ -73,3 +73,4 @@
 - [x] Audit the production Web dependency graph for known vulnerabilities and apply only compatible, fully validated remediation where needed; the production audit reported zero known vulnerabilities.
 - [x] Consolidate duplicated server request-body byte-reading logic behind one regression-tested bounded helper while preserving the distinct Core relay and confirmed-only OCR receipt error contracts.
 - [x] Restrict relay response media types to documented JSON/problem contracts and the notification event-stream contract so unsafe downstream content cannot be served under the Nirog Web origin.
+- [x] Restrict browser-to-Core and confirmed-only OCR receipt mutation relays to documented JSON request media types before downstream forwarding.

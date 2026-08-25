@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { isCrossOriginMutation } from '@/lib/browser-mutation';
 import { proxyAuthorizedCoreRequest } from '@/lib/core-proxy';
 import { isAllowedCoreEvidencePath, isReadOnlyCoreOperationsPath } from '@/lib/core-route-policy';
+import { hasSupportedJsonMutationMediaType } from '@/lib/request-media-type';
 
 const privateNoStore = 'private, no-store';
 
@@ -20,6 +21,9 @@ async function handle(request: Request, context: { params: Promise<{ corePath: s
   const path = corePath.join('/');
   if (!isAllowedCoreEvidencePath(path) || (isReadOnlyCoreOperationsPath(path) && request.method !== 'GET')) {
     return problem(404, 'CORE_ROUTE_NOT_ALLOWED', 'Core route is not available');
+  }
+  if (!hasSupportedJsonMutationMediaType(request)) {
+    return problem(415, 'CORE_REQUEST_MEDIA_TYPE_UNSUPPORTED', 'Core request media type is unsupported');
   }
   return proxyAuthorizedCoreRequest(request, path);
 }

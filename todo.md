@@ -58,3 +58,4 @@
 - [x] Ensure the dedicated account projection relay applies private no-store response headers before account and profile state reaches the browser.
 - [x] Ensure the OCR review-receipt relay applies private no-store response headers while preserving identifier-only, confirmed-only delivery semantics.
 - [x] Audit remaining authenticated and Core-adjacent Web API routes for explicit private no-store response policies and cover any uncovered route with regression tests.
+- [x] Add and regression-test conservative production browser security headers that preserve Clerk authentication and supported Nirog clinical workflows.

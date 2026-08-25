@@ -39,7 +39,7 @@ import {
 import { formatEvidenceBytes, validateEvidenceFile } from '@/lib/evidence-upload';
 import { isEvidenceFileControlDisabled, shouldShowNoProfileOnboarding } from '@/lib/evidence-workspace-state';
 import { buildMedicationDraftCorrection, validateMedicationDraftConfirmation } from '@/lib/medication-draft-payload';
-import { defaultActiveProfileId } from '@/lib/profile-selection';
+import { defaultActiveProfileId, profileOptionLabel } from '@/lib/profile-selection';
 
 type DraftForm = {
   medicationName: string;
@@ -378,7 +378,7 @@ export function PrescriptionEvidenceWorkspace() {
         <section className="pathway-selector" aria-label="Prescription context">
           <div className="pathway-step"><span>01</span><div><p className="eyebrow">Care context</p><h2>Choose the profile and prescription</h2></div></div>
           <div className="pathway-controls">
-            <label>Profile<select value={data.profileId} onChange={(event) => selectProfile(event.target.value)} disabled={view.phase === 'loading'}><option value="">Select a profile</option>{data.account?.profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.preferredName}</option>)}</select></label>
+            <label>Profile<select value={data.profileId} onChange={(event) => selectProfile(event.target.value)} disabled={view.phase === 'loading'}><option value="">Select a profile</option>{data.account?.profiles.map((profile) => <option value={profile.id} key={profile.id}>{profileOptionLabel(profile)}</option>)}</select></label>
             <label>Prescription<select value={data.prescriptionId} onChange={(event) => selectPrescription(event.target.value)} disabled={!data.profileId || view.phase === 'loading'}><option value="">Select a prescription</option>{data.prescriptions.map((prescription, index) => <option value={prescription.id} key={prescription.id}>{prescription.prescriberLabel ?? `Prescription ${index + 1}`}</option>)}</select></label>
             <button className="button button-secondary" disabled={!data.profileId || !canCreateDocuments || view.phase === 'loading' || uploadBusy} onClick={() => void createPrescription()} type="button">New prescription</button>
           </div>

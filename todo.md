@@ -47,3 +47,4 @@
 - [x] Make no-profile profile creation resilient to missing or invalid account timezone preferences, while validating the IANA timezone client-side and preserving Core-authoritative profile creation.
 - [x] Match medication-draft confirmation client validation to Core’s regimen schedule-time and interval constraints before any confirmation request is sent.
 - [x] Prefer an active profile, never an archived profile, for automatic workspace selection while preserving explicit user choices and Core authorization.
+- [x] Label archived profiles consistently in profile selectors so users can make an explicit, informed profile choice without changing Core authorization.

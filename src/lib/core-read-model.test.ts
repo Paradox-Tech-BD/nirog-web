@@ -30,6 +30,20 @@ describe('readCore response boundary', () => {
     });
   });
 
+  it('rejects a successful response with blank correlation metadata', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+      data: { status: 'active' },
+      meta: { correlationId: '   ' },
+    })));
+
+    await expect(readCore<{ status: string }>('example')).rejects.toMatchObject({
+      problem: {
+        status: 502,
+        code: 'CORE_RESPONSE_UNREADABLE',
+      },
+    });
+  });
+
   it('preserves a valid Core problem response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
       type: 'https://nirog.app/problems/validation-failed',

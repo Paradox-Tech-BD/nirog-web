@@ -52,3 +52,4 @@
 - [x] Harden generic Core error presentation so profile-scoped Web surfaces use safe contextual fallbacks without exposing untrusted Core denial details or inferring profile lifecycle state.
 - [x] Reject malformed successful Core responses at the same-origin read boundary so UI code never treats missing envelope data as a valid care projection.
 - [x] Reject malformed Core problem responses at the same-origin read boundary so failure details are presented only when they conform to the documented problem contract.
+- [x] Reject successful Core envelopes with blank correlation metadata so untraceable care projections cannot advance UI state.

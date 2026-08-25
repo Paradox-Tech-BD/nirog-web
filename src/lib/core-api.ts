@@ -56,7 +56,8 @@ export function isCoreSuccess(value: unknown): value is CoreSuccess<unknown> {
       value.meta &&
       typeof value.meta === 'object' &&
       'correlationId' in value.meta &&
-      typeof value.meta.correlationId === 'string',
+      typeof value.meta.correlationId === 'string' &&
+      value.meta.correlationId.trim().length > 0,
   );
 }
 

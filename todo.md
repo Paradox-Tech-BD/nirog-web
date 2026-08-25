@@ -61,3 +61,6 @@
 - [x] Add and regression-test conservative production browser security headers that preserve Clerk authentication and supported Nirog clinical workflows.
 - [x] Verify the deployed public Nirog Web response serves the configured conservative security headers without accessing an account or clinical route.
 - [x] Audit browser-facing authenticated mutation relays for cross-origin request defenses and add only workflow-preserving safeguards with regression coverage.
+- [x] Verify the deployed cross-origin mutation guard returns a rejection before authentication or downstream Core/OCR processing on a bounded public request.
+- [x] Verify the deployed mutation guard allows an explicit same-origin request to reach authentication rather than rejecting it as cross-origin.
+- [x] Add and verify compatible cross-origin isolation headers that protect Nirog responses without blocking popup-based Clerk authentication.

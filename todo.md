@@ -34,8 +34,9 @@
 - [x] Bound native browser-push permission and subscription waits so clinicians receive a recoverable error instead of an indefinite setup state.
 - [x] Add explicit no-profile evidence-workspace regression coverage and validate the onboarding handoff without relying on a pre-seeded test profile.
 - [x] Define a protected operator-only status surface using real Core outbox and OCR Ops job lifecycle data, with no BullMQ/Bull Board substitution and no patient evidence content.
-- [ ] Implement the protected aggregate-only operator-status web bridge and presentation with regression, responsive, authorization, and deployment validation; the verified Git preview is ready, but the custom production domain remains on the prior release and Vercel requires an authenticated browser session to promote the new revision.
-- [ ] Promote the verified operator-status revision to the custom production domain using the connected Vercel integration only; do not rely on the sandbox browser session.
+- [x] Implement the protected aggregate-only operator-status web bridge and presentation with regression, responsive, authorization, and deployment validation; the connected Vercel production release is live and the sandbox non-operator view safely denies access without loading aggregate data.
+- [x] Promote the verified operator-status revision to the custom production domain using the connected Vercel integration only; do not rely on the sandbox browser session.
+- [x] Diagnose the production operator-status bridge’s generic server error for the sandbox test account using aggregate-safe server diagnostics only; the Core authorization-response correction now returns the expected forbidden status, with no aggregate data retrieved. No patient, evidence, OCR, medication, payload, or job-identifier data was accessed.
 - [x] Add an isolated no-profile workspace regression that proves inline Core-authoritative profile onboarding appears before any prescription or evidence action is enabled.
 - [x] Review the existing Core and OCR Ops lifecycle contracts for a future operator-only status design that exposes identifiers and states only, never evidence or OCR text.
 - [x] Add Core-owned `operations.read` authorization and an aggregate-only operator-status contract before creating any browser-visible operations view.

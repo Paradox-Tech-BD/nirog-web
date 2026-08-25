@@ -3,7 +3,7 @@
 import { LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 import { coreMessage, readCore } from '@/lib/core-read-model';
-import { prepareProfileCreation } from '@/lib/profile-creation';
+import { prepareProfileCreation, resolveProfileCreationTimezone } from '@/lib/profile-creation';
 
 export function ProfileCreationForm({
   defaultTimezone,
@@ -13,7 +13,10 @@ export function ProfileCreationForm({
   onCreated: () => void;
 }) {
   const [preferredName, setPreferredName] = useState('');
-  const [timezone, setTimezone] = useState(defaultTimezone);
+  const [timezone, setTimezone] = useState(() => resolveProfileCreationTimezone(
+    defaultTimezone,
+    Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC',
+  ));
   const [submitting, setSubmitting] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -70,6 +73,7 @@ export function ProfileCreationForm({
           value={timezone}
         />
       </label>
+      <p className="form-help">Use an IANA timezone, such as Asia/Dhaka. Nirog starts with your account or browser timezone; you can change it before creation.</p>
       {problem && <p className="form-problem" role="alert">{problem}</p>}
       <button className="button button-primary" disabled={submitting} type="submit">
         {submitting ? <><LoaderCircle className="spin" size={16} /> Creating profile…</> : 'Create profile'}

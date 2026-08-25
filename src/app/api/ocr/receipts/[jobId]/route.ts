@@ -2,10 +2,12 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { ocrOpsReceiptEndpoint, parseConfirmedReceiptRelayInput } from '@/lib/ocr-receipt-relay';
 
+const privateNoStore = 'private, no-store';
+
 function problem(status: number, code: string, title: string, detail: string) {
   return NextResponse.json(
     { type: `https://nirog.app/problems/${code.toLowerCase().replaceAll('_', '-')}`, title, status, code, detail },
-    { status, headers: { 'content-type': 'application/problem+json' } },
+    { status, headers: { 'content-type': 'application/problem+json', 'cache-control': privateNoStore } },
   );
 }
 
@@ -35,7 +37,10 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
     });
     return new NextResponse(await response.text(), {
       status: response.status,
-      headers: { 'content-type': response.headers.get('content-type') ?? 'application/json' },
+      headers: {
+        'content-type': response.headers.get('content-type') ?? 'application/json',
+        'cache-control': privateNoStore,
+      },
     });
   } catch {
     return problem(502, 'OCR_OPS_UNREACHABLE', 'OCR operations service is unreachable', 'The confirmed receipt could not be delivered.');

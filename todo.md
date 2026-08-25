@@ -56,3 +56,4 @@
 - [x] Enforce no-store cache policy for every same-origin Core request so callers cannot opt into browser caching of protected care responses.
 - [x] Set explicit private no-store response headers on the same-origin Core relay so intermediary caches cannot retain protected care bodies.
 - [x] Ensure the dedicated account projection relay applies private no-store response headers before account and profile state reaches the browser.
+- [x] Ensure the OCR review-receipt relay applies private no-store response headers while preserving identifier-only, confirmed-only delivery semantics.

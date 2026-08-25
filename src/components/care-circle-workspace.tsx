@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import type { AccountProjection } from '@/lib/core-api';
 import { coreMessage, readCore, type ProfileAccessContext, type ProfileGrantSummary } from '@/lib/core-read-model';
+import { defaultActiveProfileId } from '@/lib/profile-selection';
 
 type CareCircleState =
   | { phase: 'loading'; account: AccountProjection | null; grants: ProfileGrantSummary[]; context: ProfileAccessContext | null; error?: string }
@@ -33,7 +34,7 @@ export function CareCircleWorkspace() {
     });
     try {
       const account = await readCore<AccountProjection>('me');
-      const resolvedProfileId = requestedProfileId || account.profiles[0]?.id || '';
+      const resolvedProfileId = requestedProfileId || defaultActiveProfileId(account.profiles);
       const [contextResult, grantsResult] = resolvedProfileId
         ? await Promise.allSettled([
             readCore<ProfileAccessContext>(`profiles/${resolvedProfileId}/access-context`),

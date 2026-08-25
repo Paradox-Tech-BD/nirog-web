@@ -39,6 +39,7 @@ import {
 import { formatEvidenceBytes, validateEvidenceFile } from '@/lib/evidence-upload';
 import { isEvidenceFileControlDisabled, shouldShowNoProfileOnboarding } from '@/lib/evidence-workspace-state';
 import { buildMedicationDraftCorrection, validateMedicationDraftConfirmation } from '@/lib/medication-draft-payload';
+import { defaultActiveProfileId } from '@/lib/profile-selection';
 
 type DraftForm = {
   medicationName: string;
@@ -143,7 +144,7 @@ export function PrescriptionEvidenceWorkspace() {
 
     try {
       const account = await readCore<AccountProjection>('me');
-      const profileId = requestedProfileId || account.profiles[0]?.id || '';
+      const profileId = requestedProfileId || defaultActiveProfileId(account.profiles);
       if (!profileId) {
         setView({ phase: 'ready', refreshing: false, data: { ...emptyData(), account } });
         return;

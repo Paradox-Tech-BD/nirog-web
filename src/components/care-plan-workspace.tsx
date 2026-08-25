@@ -25,6 +25,7 @@ import {
   type ProfileAccessContext,
 } from '@/lib/core-read-model';
 import { deliveryStatusDisplay } from '@/lib/delivery-status-display';
+import { defaultActiveProfileId } from '@/lib/profile-selection';
 
 type ReadState = {
   phase: 'loading' | 'ready';
@@ -102,7 +103,7 @@ export function CarePlanWorkspace() {
     setState((current) => ({ ...current, phase: current.account ? 'ready' : 'loading', refreshing: Boolean(current.account), error: undefined }));
     try {
       const account = await boundedCareRead<AccountProjection>('me');
-      const resolvedProfileId = requestedProfileId || priorSelection.profileId || account.profiles[0]?.id || '';
+      const resolvedProfileId = requestedProfileId || priorSelection.profileId || defaultActiveProfileId(account.profiles);
       if (!resolvedProfileId) {
         if (loadVersion !== loadVersionRef.current) return;
         selectionRef.current = { profileId: '', regimenId: '' };

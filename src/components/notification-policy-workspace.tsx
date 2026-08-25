@@ -23,6 +23,7 @@ import {
   validateNotificationPolicyForm,
   type NotificationPolicyForm,
 } from '@/lib/notification-policy-form';
+import { defaultActiveProfileId } from '@/lib/profile-selection';
 
 type PolicyState = {
   phase: 'loading' | 'ready';
@@ -64,7 +65,7 @@ export function NotificationPolicyWorkspace() {
     setState((current) => ({ ...current, phase: current.account ? 'ready' : 'loading', refreshing: Boolean(current.account), error: undefined }));
     try {
       const account = await readCore<AccountProjection>('me');
-      const resolvedProfileId = requestedProfileId || profileId || account.profiles[0]?.id || '';
+      const resolvedProfileId = requestedProfileId || profileId || defaultActiveProfileId(account.profiles);
       if (!resolvedProfileId) {
         setProfileId('');
         setState({ ...initialState, phase: 'ready', account, error: 'A profile is required before notification policies can be managed.' });

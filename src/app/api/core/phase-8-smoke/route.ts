@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { isCrossOriginMutation } from '@/lib/browser-mutation';
 import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
+import { isRelayJsonResponse } from '@/lib/relay-response-media-type';
 import { coreApiRoot } from '../me/route';
 
 const privateNoStore = 'private, no-store';
@@ -139,6 +140,9 @@ export async function GET(request: NextRequest) {
     `${context.apiBase}/profiles/${smokeProfileId}/evidence/${evidenceId}/ocr-extractions`,
     { headers: coreHeaders(context.token), cache: 'no-store' },
   );
+  if (![204, 205, 304].includes(response.status) && !isRelayJsonResponse(response)) {
+    return problem(502, 'CORE_RESPONSE_MEDIA_TYPE_UNSUPPORTED', 'Core response media type is unsupported', 'The Core response did not use a browser relay media type.');
+  }
   const body = await readBoundedDownstreamText(response);
   if (body === null) {
     return problem(502, 'CORE_RESPONSE_TOO_LARGE', 'Core response is too large', 'The Core response exceeded the browser relay safety limit.');

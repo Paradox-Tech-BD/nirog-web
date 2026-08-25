@@ -4,6 +4,7 @@ import { isCrossOriginMutation } from '@/lib/browser-mutation';
 import { readBoundedRequestBytes } from '@/lib/bounded-request-bytes';
 import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
 import { ocrOpsReceiptEndpoint, parseConfirmedReceiptRelayInput } from '@/lib/ocr-receipt-relay';
+import { isRelayJsonResponse } from '@/lib/relay-response-media-type';
 
 const privateNoStore = 'private, no-store';
 const maximumReceiptRequestBytes = 8 * 1024;
@@ -56,6 +57,9 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
       body: JSON.stringify(input),
       cache: 'no-store',
     });
+    if (![204, 205, 304].includes(response.status) && !isRelayJsonResponse(response)) {
+      return problem(502, 'OCR_OPS_RESPONSE_MEDIA_TYPE_UNSUPPORTED', 'OCR operations response media type is unsupported', 'The OCR operations response did not use a browser relay media type.');
+    }
     const responseBody = await readBoundedDownstreamText(response);
     if (responseBody === null) {
       return problem(502, 'OCR_OPS_RESPONSE_TOO_LARGE', 'OCR operations response is too large', 'The OCR operations response exceeded the browser relay safety limit.');

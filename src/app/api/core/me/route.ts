@@ -2,6 +2,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
+import { isRelayJsonResponse } from '@/lib/relay-response-media-type';
 
 const privateNoStore = 'private, no-store';
 
@@ -48,6 +49,9 @@ export async function GET() {
       headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
       cache: 'no-store',
     });
+    if (![204, 205, 304].includes(response.status) && !isRelayJsonResponse(response)) {
+      return problem(502, 'CORE_RESPONSE_MEDIA_TYPE_UNSUPPORTED', 'Core response media type is unsupported', 'The Core response did not use a browser relay media type.');
+    }
     const body = await readBoundedDownstreamText(response);
     if (body === null) {
       return problem(502, 'CORE_RESPONSE_TOO_LARGE', 'Core response is too large', 'The Core response exceeded the browser relay safety limit.');

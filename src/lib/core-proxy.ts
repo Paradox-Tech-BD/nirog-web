@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { readBoundedRequestBytes } from './bounded-request-bytes';
 import { fetchWithBoundedTimeout, readBoundedDownstreamText } from './downstream-fetch';
+import { isRelayEventStreamResponse, isRelayJsonResponse } from './relay-response-media-type';
 
 const privateNoStore = 'private, no-store';
 export const MAX_CORE_RELAY_REQUEST_BODY_BYTES = 64 * 1024;
@@ -63,16 +64,20 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
       body,
       cache: 'no-store',
     });
+    const noContentResponse = [204, 205, 304].includes(response.status);
+    const isEventStream = acceptsEventStream && isRelayEventStreamResponse(response);
+    if (!noContentResponse && !isEventStream && !isRelayJsonResponse(response)) {
+      return problem(502, 'CORE_RESPONSE_MEDIA_TYPE_UNSUPPORTED', 'Core response media type is unsupported', 'The Core response did not use a browser relay media type.');
+    }
     const responseHeaders = {
       'content-type': response.headers.get('content-type') ?? 'application/json',
       ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),
-      'cache-control': acceptsEventStream ? `${privateNoStore}, no-cache, no-transform` : privateNoStore,
-      ...(acceptsEventStream ? { 'x-accel-buffering': 'no' } : {}),
+      'cache-control': isEventStream ? `${privateNoStore}, no-cache, no-transform` : privateNoStore,
+      ...(isEventStream ? { 'x-accel-buffering': 'no' } : {}),
     };
-    if (acceptsEventStream && response.body) {
+    if (isEventStream && response.body) {
       return new NextResponse(response.body, { status: response.status, headers: responseHeaders });
     }
-    const noContentResponse = [204, 205, 304].includes(response.status);
     const responseBody = noContentResponse ? null : await readBoundedDownstreamText(response);
     if (!noContentResponse && responseBody === null) {
       return problem(502, 'CORE_RESPONSE_TOO_LARGE', 'Core response is too large', 'The Core response exceeded the browser relay safety limit.');

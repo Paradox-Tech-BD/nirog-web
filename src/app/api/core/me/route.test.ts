@@ -13,6 +13,7 @@ vi.mock('@/lib/downstream-fetch', () => ({
   fetchWithBoundedTimeout: (...args: Parameters<typeof fetch>) => fetch(...args),
   readBoundedDownstreamText: (response: Response) => response.text(),
 }));
+vi.mock('@/lib/relay-response-media-type', () => ({ isRelayJsonResponse: () => true }));
 
 import { GET } from './route';
 

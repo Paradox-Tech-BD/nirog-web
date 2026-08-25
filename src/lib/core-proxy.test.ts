@@ -145,4 +145,20 @@ describe('proxyAuthorizedCoreRequest', () => {
     expect(response.headers.get('cache-control')).toBe('private, no-store');
     expect(await response.json()).toMatchObject({ code: 'CORE_RESPONSE_TOO_LARGE' });
   });
+
+  it('rejects an unsupported Core response media type before relaying it under the Web origin', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const fetchMock = vi.fn(async () => new Response('<html>unexpected</html>', {
+      status: 502,
+      headers: { 'content-type': 'text/html' },
+    }));
+    global.fetch = fetchMock as typeof fetch;
+    const request = new Request('https://www.nirog.me/api/core/profiles');
+
+    const response = await proxyAuthorizedCoreRequest(request, 'profiles');
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get('content-type')).toContain('application/problem+json');
+    expect(await response.json()).toMatchObject({ code: 'CORE_RESPONSE_MEDIA_TYPE_UNSUPPORTED' });
+  });
 });

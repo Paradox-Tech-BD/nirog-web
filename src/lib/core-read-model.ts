@@ -182,6 +182,15 @@ export type AdherenceStreakSummary = {
   lastQualifyingDate?: string;
 };
 
+/** Aggregate-only Core operator snapshot. It intentionally contains no work-item or patient data. */
+export type OperationsStatusSnapshot = {
+  generatedAt: string;
+  outbox: { claimable: number; deadLettered: number };
+  ocr: { retryScheduled: number; deadLettered: number };
+  inAppInbox: { oldestUnacknowledgedAgeSeconds: number | null };
+  migration: { state: 'external_monitor_required' };
+};
+
 export class CoreReadError extends Error {
   readonly problem: CoreProblem;
 

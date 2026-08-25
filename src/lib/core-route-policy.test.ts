@@ -10,7 +10,8 @@ const regimenId = '00000000-0000-4000-8000-000000000301';
 const occurrenceId = '00000000-0000-4000-8000-000000000401';
 
 describe('Core evidence proxy route policy', () => {
-  it('allows profile onboarding plus Core user evidence and OCR-read paths', () => {
+  it('allows profile onboarding, Core user evidence paths, and the exact aggregate-only operator status read', () => {
+    expect(isAllowedCoreEvidencePath('platform/operations/status')).toBe(true);
     expect(isAllowedCoreEvidencePath('profiles')).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-context`)).toBe(true);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/access-grants`)).toBe(true);
@@ -63,5 +64,7 @@ describe('Core evidence proxy route policy', () => {
     expect(isAllowedCoreEvidencePath('delivery-registrations/web-push/private-key')).toBe(false);
     expect(isAllowedCoreEvidencePath(`profiles/${profileId}/medication-drafts/${evidenceId}/submitted/extra`)).toBe(false);
     expect(isAllowedCoreEvidencePath('me')).toBe(false);
+    expect(isAllowedCoreEvidencePath('platform/operations/status/extra')).toBe(false);
+    expect(isAllowedCoreEvidencePath('platform/operations/retry')).toBe(false);
   });
 });

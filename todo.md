@@ -34,8 +34,11 @@
 - [x] Bound native browser-push permission and subscription waits so clinicians receive a recoverable error instead of an indefinite setup state.
 - [x] Add explicit no-profile evidence-workspace regression coverage and validate the onboarding handoff without relying on a pre-seeded test profile.
 - [x] Define a protected operator-only status surface using real Core outbox and OCR Ops job lifecycle data, with no BullMQ/Bull Board substitution and no patient evidence content.
-- [ ] Implement the next approved safe operational increment with regression, responsive, authorization, and deployment validation.
+- [ ] Implement the protected aggregate-only operator-status web bridge and presentation with regression, responsive, authorization, and deployment validation.
 - [x] Add an isolated no-profile workspace regression that proves inline Core-authoritative profile onboarding appears before any prescription or evidence action is enabled.
 - [x] Review the existing Core and OCR Ops lifecycle contracts for a future operator-only status design that exposes identifiers and states only, never evidence or OCR text.
-- [ ] Add Core-owned `operations.read` authorization and an aggregate-only operator-status contract before creating any browser-visible operations view.
+- [x] Add Core-owned `operations.read` authorization and an aggregate-only operator-status contract before creating any browser-visible operations view.
+- [x] Add an authorization-preserving same-origin web bridge for the Core aggregate-only status contract; do not introduce a worker secret, direct browser-to-Core call, or any mutation path.
+- [x] Add an operator-only status presentation that handles Core authorization denial safely and renders only aggregate operational counts and generation time.
+- [x] Add regression tests proving the web bridge forwards caller identity, rejects unavailable/forbidden responses safely, and cannot expose patient, evidence, OCR, medication, payload, or job-identifier data.
 - [x] Diagnose the deployed sandbox test session’s evidence-workspace refresh stall without creating, modifying, or inspecting patient evidence; the same-origin account bridge returns successfully and a read-only refresh reaches the authorized ready state without client-console errors.

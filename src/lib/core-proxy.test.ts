@@ -69,4 +69,24 @@ describe('proxyAuthorizedCoreRequest', () => {
     const init = fetchMock.mock.calls.at(0)?.at(1) as RequestInit | undefined;
     expect((init?.headers as Headers).get('accept')).toBe('text/event-stream');
   });
+
+  it('relays the aggregate operations status read with the caller token and no request body', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ data: { generatedAt: '2026-08-25T00:00:00.000Z' } }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+    global.fetch = fetchMock as typeof fetch;
+    const request = new Request('https://www.nirog.me/api/core/platform/operations/status');
+
+    const response = await proxyAuthorizedCoreRequest(request, 'platform/operations/status');
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://core.example/api/v1/platform/operations/status',
+      expect.objectContaining({ method: 'GET', body: undefined }),
+    );
+    const init = fetchMock.mock.calls.at(0)?.at(1) as RequestInit | undefined;
+    expect((init?.headers as Headers).get('authorization')).toBe('Bearer test-token');
+  });
 });

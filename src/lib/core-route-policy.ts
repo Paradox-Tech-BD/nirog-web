@@ -1,4 +1,5 @@
 const allowedPath = [
+  /^platform\/operations\/status$/,
   /^profiles$/,
   /^profiles\/[0-9a-f-]{36}\/access-context$/,
   /^profiles\/[0-9a-f-]{36}\/access-grants$/,
@@ -38,4 +39,8 @@ const allowedPath = [
 
 export function isAllowedCoreEvidencePath(path: string): boolean {
   return allowedPath.some((pattern) => pattern.test(path));
+}
+
+export function isReadOnlyCoreOperationsPath(path: string): boolean {
+  return path === 'platform/operations/status';
 }

@@ -80,3 +80,4 @@
 - [x] Add a regression guard that blocks sensitive server configuration and downstream bearer authorization patterns from browser-rendered Web source files.
 - [x] Reject explicit cross-site browser mutation metadata at Web relay boundaries while retaining compatible same-origin and non-browser clients.
 - [x] Preserve Core’s allowlisted rate-limit response metadata through the authenticated browser relay without forwarding arbitrary downstream headers.
+- [x] Forward a Core correlation header through the browser relay only when it is RFC 4122-shaped, preserving valid traceability and dropping malformed downstream metadata.

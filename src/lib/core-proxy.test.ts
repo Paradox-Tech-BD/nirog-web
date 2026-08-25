@@ -122,6 +122,35 @@ describe('proxyAuthorizedCoreRequest', () => {
     expect(response.headers.get('x-untrusted-core-header')).toBeNull();
   });
 
+  it('forwards valid Core correlation IDs and drops malformed downstream values', async () => {
+    process.env.NIROG_CORE_API_URL = 'https://core.example';
+    const validCorrelationId = '00000000-0000-4000-8000-000000000001';
+    const responses = [
+      new Response(JSON.stringify({ data: [] }), {
+        headers: { 'content-type': 'application/json', 'x-correlation-id': validCorrelationId },
+      }),
+      new Response(JSON.stringify({ data: [] }), {
+        headers: {
+          'content-type': 'application/json',
+          'x-correlation-id': 'malformed-downstream-correlation',
+        },
+      }),
+    ];
+    global.fetch = vi.fn(async () => responses.shift()!) as typeof fetch;
+
+    const valid = await proxyAuthorizedCoreRequest(
+      new Request('https://www.nirog.me/api/core/profiles'),
+      'profiles',
+    );
+    const malformed = await proxyAuthorizedCoreRequest(
+      new Request('https://www.nirog.me/api/core/profiles'),
+      'profiles',
+    );
+
+    expect(valid.headers.get('x-correlation-id')).toBe(validCorrelationId);
+    expect(malformed.headers.get('x-correlation-id')).toBeNull();
+  });
+
   it('forwards a bounded mutation body without changing its bytes', async () => {
     process.env.NIROG_CORE_API_URL = 'https://core.example';
     const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));

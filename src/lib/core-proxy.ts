@@ -14,6 +14,8 @@ const rateLimitResponseHeaderNames = [
   'ratelimit-remaining',
   'ratelimit-reset',
 ] as const;
+const rfc4122UuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function rateLimitResponseHeaders(response: Response): Record<string, string> {
   return Object.fromEntries(
@@ -22,6 +24,13 @@ function rateLimitResponseHeaders(response: Response): Record<string, string> {
       return value ? [[name, value]] : [];
     }),
   );
+}
+
+function correlationResponseHeaders(response: Response): Record<string, string> {
+  const correlationId = response.headers.get('x-correlation-id');
+  return correlationId && rfc4122UuidPattern.test(correlationId)
+    ? { 'x-correlation-id': correlationId }
+    : {};
 }
 
 function problem(status: number, code: string, title: string, detail: string) {
@@ -86,7 +95,7 @@ export async function proxyAuthorizedCoreRequest(request: Request, path: string)
     }
     const responseHeaders = {
       'content-type': response.headers.get('content-type') ?? 'application/json',
-      ...(response.headers.get('x-correlation-id') ? { 'x-correlation-id': response.headers.get('x-correlation-id')! } : {}),
+      ...correlationResponseHeaders(response),
       ...rateLimitResponseHeaders(response),
       'cache-control': isEventStream ? `${privateNoStore}, no-cache, no-transform` : privateNoStore,
       ...(isEventStream ? { 'x-accel-buffering': 'no' } : {}),

@@ -64,3 +64,5 @@
 - [x] Verify the deployed cross-origin mutation guard returns a rejection before authentication or downstream Core/OCR processing on a bounded public request.
 - [x] Verify the deployed mutation guard allows an explicit same-origin request to reach authentication rather than rejecting it as cross-origin.
 - [x] Add and verify compatible cross-origin isolation headers that protect Nirog responses without blocking popup-based Clerk authentication.
+- [x] Verify the deployed public Nirog Web response serves the configured compatible cross-origin isolation headers without accessing an account or clinical route.
+- [x] Bound confirmed-only OCR receipt request bodies before parsing so oversized payloads are rejected without reaching downstream receipt delivery.

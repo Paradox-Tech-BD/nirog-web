@@ -51,4 +51,20 @@ describe('confirmed OCR receipt relay', () => {
       expect.objectContaining({ method: 'POST', cache: 'no-store' }),
     );
   });
+
+  it('rejects an oversized body before attempting downstream receipt delivery', async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as typeof fetch;
+    const request = new Request('https://www.nirog.me/api/ocr/receipts/job-test', {
+      method: 'POST',
+      body: 'x'.repeat(8 * 1024 + 1),
+      headers: { 'content-type': 'application/json' },
+    });
+
+    const response = await POST(request, { params: Promise.resolve({ jobId: 'job-test' }) });
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'RECEIPT_REQUEST_TOO_LARGE' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

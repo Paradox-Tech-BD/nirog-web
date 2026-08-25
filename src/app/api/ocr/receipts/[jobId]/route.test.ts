@@ -6,6 +6,12 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@clerk/nextjs/server', () => ({ auth: mocks.auth }));
+vi.mock('@/lib/bounded-request-bytes', () => ({
+  readBoundedRequestBytes: async (request: Request, maxBytes: number) => {
+    const bytes = new Uint8Array(await request.arrayBuffer());
+    return bytes.byteLength > maxBytes ? { kind: 'too-large' as const } : { kind: 'bytes' as const, bytes };
+  },
+}));
 vi.mock('@/lib/downstream-fetch', () => ({
   fetchWithBoundedTimeout: (...args: Parameters<typeof fetch>) => fetch(...args),
   readBoundedDownstreamText: (response: Response) => response.text(),

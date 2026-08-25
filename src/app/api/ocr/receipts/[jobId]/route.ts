@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { isCrossOriginMutation } from '@/lib/browser-mutation';
+import { readBoundedRequestBytes } from '@/lib/bounded-request-bytes';
 import { fetchWithBoundedTimeout, readBoundedDownstreamText } from '@/lib/downstream-fetch';
 import { ocrOpsReceiptEndpoint, parseConfirmedReceiptRelayInput } from '@/lib/ocr-receipt-relay';
 
@@ -17,38 +18,12 @@ function problem(status: number, code: string, title: string, detail: string) {
 }
 
 async function readReceiptRequest(request: Request): Promise<ReceiptRequest> {
-  const declaredLength = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > maximumReceiptRequestBytes) return { kind: 'too-large' };
   if (!request.body) return { kind: 'invalid' };
-
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
+  const result = await readBoundedRequestBytes(request, maximumReceiptRequestBytes);
+  if (result.kind === 'too-large') return { kind: 'too-large' };
+  if (result.kind === 'unreadable') return { kind: 'invalid' };
   try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalBytes += value.byteLength;
-      if (totalBytes > maximumReceiptRequestBytes) {
-        await reader.cancel();
-        return { kind: 'too-large' };
-      }
-      chunks.push(value);
-    }
-  } catch {
-    return { kind: 'invalid' };
-  } finally {
-    reader.releaseLock();
-  }
-
-  const bytes = new Uint8Array(totalBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  try {
-    const input = parseConfirmedReceiptRelayInput(JSON.parse(new TextDecoder().decode(bytes)));
+    const input = parseConfirmedReceiptRelayInput(JSON.parse(new TextDecoder().decode(result.bytes)));
     return input ? { kind: 'input', input } : { kind: 'invalid' };
   } catch {
     return { kind: 'invalid' };

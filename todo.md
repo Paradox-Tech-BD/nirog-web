@@ -70,3 +70,5 @@
 - [x] Audit remaining Web relay routes for bounded request reads and downstream timeout behavior; harden only a safe account-independent boundary identified by the review.
 - [x] Bound buffered downstream relay responses so oversized Core, OCR Ops, and synthetic-smoke responses are rejected before server memory or browser relay exposure grows without limit.
 - [x] Add a regression-tested, compatibility-preserving Content Security Policy baseline that further constrains browser resource loading without breaking Clerk authentication or existing Nirog workflows.
+- [x] Audit the production Web dependency graph for known vulnerabilities and apply only compatible, fully validated remediation where needed; the production audit reported zero known vulnerabilities.
+- [x] Consolidate duplicated server request-body byte-reading logic behind one regression-tested bounded helper while preserving the distinct Core relay and confirmed-only OCR receipt error contracts.

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { readBoundedRequestBytes } from './bounded-request-bytes';
 import { fetchWithBoundedTimeout, readBoundedDownstreamText } from './downstream-fetch';
 
 const privateNoStore = 'private, no-store';
@@ -21,34 +22,11 @@ function coreApiRoot(apiBase: string): string {
 
 async function readBoundedRequestBody(request: Request): Promise<Blob | null | undefined> {
   if (request.method === 'GET' || request.method === 'HEAD' || !request.body) return undefined;
-
-  const declaredLength = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_CORE_RELAY_REQUEST_BODY_BYTES) return null;
-
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalLength = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalLength += value.byteLength;
-      if (totalLength > MAX_CORE_RELAY_REQUEST_BODY_BYTES) {
-        await reader.cancel();
-        return null;
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  const body = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    body.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
+  const result = await readBoundedRequestBytes(request, MAX_CORE_RELAY_REQUEST_BODY_BYTES);
+  if (result.kind === 'too-large') return null;
+  if (result.kind === 'unreadable') throw new Error('Core relay request body could not be read.');
+  const body = new Uint8Array(result.bytes.byteLength);
+  body.set(result.bytes);
   return new Blob([body]);
 }
 

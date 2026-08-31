@@ -432,7 +432,82 @@ export function PrescriptionEvidenceWorkspace() {
           <article className="journey-card journey-status">
             <div className="card-kicker"><span>03</span><p className="eyebrow">Automatic processing</p></div>
             <h2>Prescription status</h2>
-            {view.phase === 'loading' ? <LoadingLine label="Loading the profile-scoped record…" /> : !latestEvidence ? <EmptyLine label="No file has been attached to this prescription." /> : <div className="status-timeline"><div><span className="timeline-dot complete" /><div><strong>File received</strong><p>{latestEvidence.contentType} · {formatEvidenceBytes(latestEvidence.declaredSizeBytes)}</p></div></div><div><span className={latestEvidence.status === 'processing' ? 'timeline-dot working' : 'timeline-dot complete'} /><div><strong>{labelForStatus(latestEvidence.status)}</strong><p>{latestEvidence.status === 'processing' ? 'Nirog refreshes this status automatically.' : 'The evidence record is available to the authorized profile.'}</p></div></div><div><span className={data.extractions.length ? 'timeline-dot complete' : 'timeline-dot waiting'} /><div><strong>{data.extractions.length ? 'Extraction reported' : 'Draft preparation'}</strong><p>{data.extractions.length ? `${data.extractions[0]?.candidateCount ?? 0} candidate${data.extractions[0]?.candidateCount === 1 ? '' : 's'} recorded.` : 'Waiting for the next extraction update.'}</p></div></div></div>}
+            {view.phase === 'loading' ? <LoadingLine label="Loading the profile-scoped record…" /> : !latestEvidence ? <EmptyLine label="No file has been attached to this prescription." /> : (() => {
+              const ev = latestEvidence;
+              const isRejected = ev.status === 'rejected';
+              const isProcessing = ev.status === 'processing';
+              const isProcessed = ev.status === 'processed';
+              const isUploaded = ev.status === 'uploaded';
+              return (
+                <div className="status-timeline">
+                  {/* Step 1 — File received */}
+                  <div>
+                    <span className="timeline-dot complete" />
+                    <div>
+                      <strong>File received</strong>
+                      <p>{ev.contentType} · {formatEvidenceBytes(ev.declaredSizeBytes)}</p>
+                    </div>
+                  </div>
+                  {/* Step 2 — Upload confirmed */}
+                  <div>
+                    <span className={isUploaded || isProcessing || isProcessed || isRejected ? 'timeline-dot complete' : 'timeline-dot waiting'} />
+                    <div>
+                      <strong>Upload confirmed</strong>
+                      <p>{isUploaded || isProcessing || isProcessed || isRejected ? 'File transferred and accepted by Core.' : 'Waiting for upload confirmation.'}</p>
+                    </div>
+                  </div>
+                  {/* Step 3 — OCR processing / result */}
+                  <div>
+                    <span className={isRejected ? 'timeline-dot error' : isProcessed ? 'timeline-dot complete' : isProcessing ? 'timeline-dot working' : 'timeline-dot waiting'} />
+                    <div>
+                      {isRejected && (
+                        <>
+                          <strong style={{ color: 'var(--color-error, #dc2626)' }}>Extraction failed</strong>
+                          <p>The OCR worker could not process this file. This is usually a temporary issue — the worker may still be starting up or is not yet configured for live extractions.</p>
+                          <p style={{ marginTop: '6px', fontSize: '0.8rem', opacity: 0.7 }}>To retry: upload the same file again using the panel on the left.</p>
+                        </>
+                      )}
+                      {isProcessing && (
+                        <>
+                          <strong>Processing</strong>
+                          <p>Nirog is extracting medication candidates. This page refreshes automatically every 5 seconds.</p>
+                        </>
+                      )}
+                      {isProcessed && (
+                        <>
+                          <strong>Processed</strong>
+                          <p>Extraction complete. Scroll down to review the medication draft.</p>
+                        </>
+                      )}
+                      {(isUploaded || (!isRejected && !isProcessing && !isProcessed)) && (
+                        <>
+                          <strong>Queued for extraction</strong>
+                          <p>Waiting for the OCR worker to pick up this job.</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {/* Step 4 — Draft ready */}
+                  <div>
+                    <span className={data.extractions.length && isProcessed ? 'timeline-dot complete' : 'timeline-dot waiting'} />
+                    <div>
+                      <strong>{data.extractions.length && isProcessed ? 'Draft ready' : 'Draft preparation'}</strong>
+                      <p>{data.extractions.length && isProcessed ? `${data.extractions[0]?.candidateCount ?? 0} medication candidate${data.extractions[0]?.candidateCount === 1 ? '' : 's'} recorded.` : isRejected ? 'No draft — extraction did not complete.' : 'Waiting for extraction to complete.'}</p>
+                    </div>
+                  </div>
+                  {/* Failure banner — unmissable */}
+                  {isRejected && (
+                    <div className="workflow-banner workflow-banner-error" role="alert" style={{ marginTop: '12px', borderRadius: '8px' }}>
+                      <AlertTriangle size={17} />
+                      <div>
+                        <strong>Extraction rejected by the OCR worker</strong>
+                        <p>Status: <code>rejected</code>. The worker received the job but reported a failure — either <code>ocr_processing_failed</code> or <code>ocr_unavailable</code>. Check that <code>NIROG_LIVE_EVIDENCE_ENABLED=true</code> and <code>GEMINI_API_KEY</code> are set on the ML worker service. To retry, upload the same file again.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </article>
         </section>
 

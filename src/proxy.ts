@@ -6,8 +6,10 @@ export const cspBaselineDirectives = {
   'connect-src': [
     "'self'",
     'https://nirog.up.railway.app',
+    // R2 path-style: <account>.r2.cloudflarestorage.com
     'https://*.r2.cloudflarestorage.com',
-    'https://*.cloudflarestorage.com',
+    // R2 virtual-hosted style: <bucket>.<account>.r2.cloudflarestorage.com
+    'https://*.31bdd67db1cb4ef613270147c715fdee.r2.cloudflarestorage.com',
     'https://*.clerk.accounts.dev',
     'https://*.clerk.com',
     'wss:',

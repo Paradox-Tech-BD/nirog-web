@@ -280,7 +280,8 @@ export function PrescriptionEvidenceWorkspace() {
       setUpload({ status: 'queueing', file, message: 'Queueing automatic extraction and editable draft preparation…' });
       await readCore<{ ocrJobId: string }>(`profiles/${data.profileId}/prescriptions/${data.prescriptionId}/evidence/${authorization.evidence.id}/complete`, {
         method: 'POST',
-        headers: { 'idempotency-key': idempotencyKey() },
+        headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey() },
+        body: '{}',
       });
       setUpload({ status: 'complete', file, message: 'Prescription received. Nirog is preparing editable medication drafts automatically.' });
       await refresh(data.profileId, data.prescriptionId);

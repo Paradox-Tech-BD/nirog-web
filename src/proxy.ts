@@ -3,6 +3,15 @@ import { clerkMiddleware } from '@clerk/nextjs/server';
 
 export const cspBaselineDirectives = {
   'base-uri': ["'self'"],
+  'connect-src': [
+    "'self'",
+    'https://nirog.up.railway.app',
+    'https://*.r2.cloudflarestorage.com',
+    'https://*.cloudflarestorage.com',
+    'https://*.clerk.accounts.dev',
+    'https://*.clerk.com',
+    'wss:',
+  ],
   'form-action': ["'self'"],
   'frame-ancestors': ["'none'"],
   'manifest-src': ["'self'"],

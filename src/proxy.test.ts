@@ -17,7 +17,7 @@ describe('Clerk browser security middleware', () => {
         "'self'",
         'https://nirog.up.railway.app',
         'https://*.r2.cloudflarestorage.com',
-        'https://*.cloudflarestorage.com',
+        'https://*.31bdd67db1cb4ef613270147c715fdee.r2.cloudflarestorage.com',
         'https://*.clerk.accounts.dev',
         'https://*.clerk.com',
         'wss:',

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   proxyAuthorizedCoreRequest: vi.fn(async () => new Response(null, { status: 204 })),
@@ -17,6 +17,10 @@ vi.mock('@/lib/core-route-policy', () => ({
 vi.mock('@/lib/request-media-type', () => ({ hasSupportedJsonMutationMediaType: mocks.hasSupportedJsonMutationMediaType }));
 
 import { GET, PATCH, POST, PUT } from './route';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('Core proxy route PATCH support', () => {
   it('forwards the medication-draft correction request through the allowlisted proxy', async () => {

@@ -13,7 +13,7 @@ const forbiddenPatterns = [
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = join(directory, entry.name);
-    if (entry.isDirectory()) return entryPath.includes('/api') ? [] : sourceFiles(entryPath);
+    if (entry.isDirectory()) return entry.name === 'api' ? [] : sourceFiles(entryPath);
     return entry.isFile() && /\.(?:ts|tsx)$/.test(entry.name) && !entry.name.endsWith('.test.ts') ? [entryPath] : [];
   });
 }
